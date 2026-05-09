@@ -80,7 +80,7 @@ ${format(new Date(article.pubDate), 'MMMM d, yyyy')}`;
           </button>
           <button
             className={article.status === 'skipped' ? 'active' : ''}
-            onClick={() => handleStatusChange('skipped')}
+            onClick={() => handleStatusChange(article.status === 'skipped' ? 'unread' : 'skipped')}
           >
             Skipped
           </button>
