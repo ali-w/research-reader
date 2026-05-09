@@ -205,6 +205,7 @@ function App() {
   };
 
   const handleSelectArticle = (article: Article) => {
+    if (selectedArticle?.id === article.id) return;
     setSelectedArticle(article);
     if (article.status === 'unread') {
       handleArticleUpdate({ ...article, status: 'read', updatedAt: new Date() });

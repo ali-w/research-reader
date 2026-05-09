@@ -74,7 +74,7 @@ ${format(new Date(article.pubDate), 'MMMM d, yyyy')}`;
           <label>Status:</label>
           <button
             className={article.status === 'read' ? 'active' : ''}
-            onClick={() => handleStatusChange('read')}
+            onClick={() => handleStatusChange(article.status === 'read' ? 'unread' : 'read')}
           >
             Read
           </button>
