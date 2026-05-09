@@ -12,6 +12,10 @@ interface ApiArticle {
   article_created_at: string;
   newsletter_name: string;
   received_at: string;
+  status?: 'unread' | 'read' | 'skipped';
+  rating?: number | null;
+  notes?: string;
+  updated_at?: string;
 }
 
 // Extract a readable sender name from SRS bounce address format
@@ -37,9 +41,10 @@ export async function fetchArticlesFromEndpoint(endpointUrl: string = DEFAULT_FE
     pubDate: new Date(item.received_at),
     source: extractNewsletterSource(item.newsletter_name),
     newsletterName: item.newsletter_name,
-    status: 'unread' as const,
-    notes: '',
+    status: item.status ?? 'unread',
+    rating: (item.rating ?? undefined) as Article['rating'],
+    notes: item.notes ?? '',
     createdAt: new Date(),
-    updatedAt: new Date(),
+    updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(),
   }));
 }

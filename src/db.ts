@@ -1,5 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { Article, RSSFeed } from './types';
+import { SyncPatch } from './sync';
 
 interface ResearchDB extends DBSchema {
   articles: {
@@ -112,6 +113,31 @@ export async function addPendingSync(
 export async function getPendingSyncs() {
   const db = await getDB();
   return db.getAll('pendingSync');
+}
+
+// Upserts a sync patch for an article, merging with any existing queued patch
+// so that multiple offline changes to the same article coalesce into one entry.
+export async function upsertPendingSync(
+  articleId: string,
+  patch: SyncPatch
+): Promise<void> {
+  const db = await getDB();
+  const existing = await db.get('pendingSync', articleId);
+  const merged = existing ? { ...existing.data, ...patch } : patch;
+  await db.put('pendingSync', {
+    id: articleId,
+    action: 'update',
+    data: { id: articleId, ...merged } as Partial<Article>,
+    timestamp: new Date(),
+  });
+}
+
+export async function removePendingSyncs(articleIds: string[]): Promise<void> {
+  if (articleIds.length === 0) return;
+  const db = await getDB();
+  const tx = db.transaction('pendingSync', 'readwrite');
+  await Promise.all(articleIds.map((id) => tx.store.delete(id)));
+  await tx.done;
 }
 
 export async function clearPendingSyncs(): Promise<void> {

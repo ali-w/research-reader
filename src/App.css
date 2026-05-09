@@ -83,6 +83,14 @@ body {
   background: var(--error-color);
 }
 
+.status-dot.syncing {
+  background: var(--warning-color);
+}
+
+.status-dot.sync-error {
+  background: var(--error-color);
+}
+
 .status-text {
   font-size: 14px;
   font-weight: 500;

@@ -7,10 +7,13 @@ import {
   clearAllArticles,
   getArticlesByStatus,
   getPendingSyncs,
+  upsertPendingSync,
+  removePendingSyncs,
   saveFeed,
 } from './db';
 import { fetchArticlesFromEndpoint, DEFAULT_FEED_ENDPOINT } from './rss';
 import { fetchSummaryFromEndpoint, DEFAULT_SUMMARIZE_ENDPOINT } from './llm';
+import { patchArticle, batchPatchArticles, SyncPatch } from './sync';
 import ArticleList from './components/ArticleList';
 import ArticleReader from './components/ArticleReader';
 import SettingsPanel from './components/SettingsPanel';
@@ -32,12 +35,14 @@ function App() {
     localStorage.getItem('summarize_endpoint_url') || DEFAULT_SUMMARIZE_ENDPOINT
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [syncErrors, setSyncErrors] = useState<Array<{ id: string; error: string }>>([]);
 
   useEffect(() => {
     loadArticles();
     updateSyncStatus();
+    if (navigator.onLine) flushPendingSync();
 
-    const handleOnline = () => updateSyncStatus();
+    const handleOnline = () => { updateSyncStatus(); flushPendingSync(); };
     const handleOffline = () => updateSyncStatus();
 
     window.addEventListener('online', handleOnline);
@@ -74,9 +79,48 @@ function App() {
     try {
       await saveArticle(updatedArticle);
       await loadArticles();
+
+      // Diff against the previous selectedArticle to build a minimal sync patch.
+      // Summary changes are excluded — those originate from the server, not the client.
+      const patch: SyncPatch = {};
+      if (selectedArticle) {
+        if (updatedArticle.status !== selectedArticle.status) patch.status = updatedArticle.status;
+        if (updatedArticle.rating !== selectedArticle.rating) patch.rating = updatedArticle.rating ?? null;
+        if (updatedArticle.notes !== selectedArticle.notes) patch.notes = updatedArticle.notes;
+      }
+
       setSelectedArticle(updatedArticle);
+
+      if (Object.keys(patch).length > 0) {
+        if (navigator.onLine) {
+          try {
+            await patchArticle(updatedArticle.id, patch, endpointUrl);
+            setSyncErrors((prev) => prev.filter((e) => e.id !== updatedArticle.id));
+          } catch {
+            await upsertPendingSync(updatedArticle.id, patch);
+          }
+        } else {
+          await upsertPendingSync(updatedArticle.id, patch);
+        }
+        await updateSyncStatus();
+      }
     } catch (error) {
       console.error('Error updating article:', error);
+    }
+  };
+
+  const flushPendingSync = async () => {
+    const pending = await getPendingSyncs();
+    if (pending.length === 0) return;
+    const url = localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT;
+    try {
+      const updates = pending.map((p) => ({ id: p.id, ...(p.data as SyncPatch) }));
+      const { succeeded, failed } = await batchPatchArticles(updates, url);
+      await removePendingSyncs(succeeded.map(String));
+      setSyncErrors(failed.map((f) => ({ id: String(f.id), error: f.error })));
+      await updateSyncStatus();
+    } catch (error) {
+      console.error('Failed to flush pending sync:', error);
     }
   };
 
@@ -161,15 +205,30 @@ function App() {
       <header className="header">
         <h1>Research Reader</h1>
         <div className="header-actions">
-          <div className="sync-status">
-            <span className={`status-dot ${syncStatus.isOnline ? 'online' : 'offline'}`} />
-            <span className="status-text">
-              {syncStatus.isOnline ? 'Online' : 'Offline'}
-            </span>
-            {syncStatus.pendingChanges > 0 && (
-              <span className="pending-badge">{syncStatus.pendingChanges}</span>
-            )}
-          </div>
+          {(() => {
+            const hasSyncErrors = syncErrors.length > 0;
+            const hasPending = syncStatus.pendingChanges > 0;
+            const dotState = !syncStatus.isOnline ? 'offline'
+              : hasSyncErrors ? 'sync-error'
+              : hasPending ? 'syncing'
+              : 'online';
+            const statusText = !syncStatus.isOnline ? 'Offline'
+              : hasSyncErrors ? 'Sync failed'
+              : hasPending ? 'Syncing...'
+              : 'Online & up to date';
+            const tooltip = hasSyncErrors
+              ? syncErrors.map((e) => `Article ${e.id}: ${e.error}`).join('\n')
+              : undefined;
+            return (
+              <div className="sync-status" title={tooltip}>
+                <span className={`status-dot ${dotState}`} />
+                <span className="status-text">{statusText}</span>
+                {hasPending && (
+                  <span className="pending-badge">{syncStatus.pendingChanges}</span>
+                )}
+              </div>
+            );
+          })()}
           <button
             className="settings-btn"
             onClick={() => setShowSettings(!showSettings)}
