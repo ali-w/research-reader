@@ -294,7 +294,7 @@ function App() {
           onClick={() => setRandomOrder(!randomOrder)}
           title="Shuffle article order"
         >
-          Random Order
+          Shuffle Order
         </button>
       </div>
 
