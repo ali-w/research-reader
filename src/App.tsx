@@ -4,6 +4,7 @@ import {
   getAllArticles,
   saveArticle,
   getMaxArticleId,
+  clearAllArticles,
   getArticlesByStatus,
   getPendingSyncs,
   saveFeed,
@@ -104,6 +105,31 @@ function App() {
     }
   };
 
+  const handleClearAndRefresh = async (url: string) => {
+    if (!navigator.onLine) {
+      alert('You are offline. Please connect to the internet to fetch new articles.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await clearAllArticles();
+      setSelectedArticle(null);
+      const fetched = await fetchArticlesFromEndpoint(url);
+      for (const article of fetched) {
+        await saveArticle(article);
+      }
+      await saveFeed({ url, title: 'Newsletter Feed', lastFetched: new Date() });
+      await loadArticles();
+      alert(`Cleared and reloaded ${fetched.length} articles`);
+    } catch (error) {
+      console.error('Error refreshing articles:', error);
+      alert('Error refreshing articles. Please check the endpoint URL and try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGenerateSummary = async (article: Article) => {
     if (!navigator.onLine) {
       alert('You are offline. Summary generation requires an internet connection.');
@@ -170,6 +196,7 @@ function App() {
           onSaveApiKey={handleSaveApiKey}
           onSaveEndpoint={handleSaveEndpoint}
           onFetchArticles={handleFetchArticles}
+          onClearAndRefresh={handleClearAndRefresh}
           onClose={() => setShowSettings(false)}
           isOnline={syncStatus.isOnline}
         />

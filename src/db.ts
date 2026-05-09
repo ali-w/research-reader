@@ -78,6 +78,13 @@ export async function deleteArticle(id: string): Promise<void> {
   await db.delete('articles', id);
 }
 
+export async function clearAllArticles(): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('articles', 'readwrite');
+  await tx.store.clear();
+  await tx.done;
+}
+
 export async function saveFeed(feed: RSSFeed): Promise<void> {
   const db = await getDB();
   await db.put('feeds', feed);

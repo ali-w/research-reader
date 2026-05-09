@@ -6,6 +6,7 @@ interface SettingsPanelProps {
   onSaveApiKey: (key: string) => void;
   onSaveEndpoint: (url: string) => void;
   onFetchArticles: (url: string) => void;
+  onClearAndRefresh: (url: string) => void;
   onClose: () => void;
   isOnline: boolean;
 }
@@ -16,6 +17,7 @@ function SettingsPanel({
   onSaveApiKey,
   onSaveEndpoint,
   onFetchArticles,
+  onClearAndRefresh,
   onClose,
   isOnline,
 }: SettingsPanelProps) {
@@ -103,6 +105,21 @@ function SettingsPanel({
             {!isOnline && (
               <p className="warning">You must be online to fetch new articles</p>
             )}
+          </section>
+
+          <section className="settings-section">
+            <h3>Danger Zone</h3>
+            <p className="hint">
+              Deletes all stored articles and reloads everything from the feed endpoint.
+              Your notes, ratings, and read status will be lost.
+            </p>
+            <button
+              className={`clear-refresh-btn ${!isOnline ? 'disabled' : ''}`}
+              onClick={() => onClearAndRefresh(endpointInput)}
+              disabled={!isOnline}
+            >
+              Clear All &amp; Refresh from Feed
+            </button>
           </section>
 
           <section className="settings-section">
