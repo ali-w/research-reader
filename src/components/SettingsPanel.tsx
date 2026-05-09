@@ -1,10 +1,10 @@
 import { useState } from 'react';
 
 interface SettingsPanelProps {
-  apiKey: string;
   endpointUrl: string;
-  onSaveApiKey: (key: string) => void;
+  summarizeEndpoint: string;
   onSaveEndpoint: (url: string) => void;
+  onSaveSummarizeEndpoint: (url: string) => void;
   onFetchArticles: (url: string) => void;
   onClearAndRefresh: (url: string) => void;
   onClose: () => void;
@@ -12,26 +12,26 @@ interface SettingsPanelProps {
 }
 
 function SettingsPanel({
-  apiKey,
   endpointUrl,
-  onSaveApiKey,
+  summarizeEndpoint,
   onSaveEndpoint,
+  onSaveSummarizeEndpoint,
   onFetchArticles,
   onClearAndRefresh,
   onClose,
   isOnline,
 }: SettingsPanelProps) {
-  const [apiKeyInput, setApiKeyInput] = useState(apiKey);
   const [endpointInput, setEndpointInput] = useState(endpointUrl);
-
-  const handleSaveKey = () => {
-    onSaveApiKey(apiKeyInput);
-    alert('API key saved successfully!');
-  };
+  const [summarizeInput, setSummarizeInput] = useState(summarizeEndpoint);
 
   const handleSaveEndpoint = () => {
     onSaveEndpoint(endpointInput);
-    alert('Endpoint URL saved!');
+    alert('Feed endpoint saved!');
+  };
+
+  const handleSaveSummarize = () => {
+    onSaveSummarizeEndpoint(summarizeInput);
+    alert('Summarize endpoint saved!');
   };
 
   const handleFetch = () => {
@@ -54,30 +54,6 @@ function SettingsPanel({
         </div>
 
         <div className="settings-content">
-          <section className="settings-section">
-            <h3>Anthropic API Key</h3>
-            <p className="hint">
-              Required for AI-powered summary generation. Get your key from{' '}
-              <a
-                href="https://console.anthropic.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                console.anthropic.com
-              </a>
-            </p>
-            <input
-              type="password"
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-              placeholder="sk-ant-..."
-              className="api-key-input"
-            />
-            <button className="save-btn" onClick={handleSaveKey}>
-              Save API Key
-            </button>
-          </section>
-
           <section className="settings-section">
             <h3>Article Feed Endpoint</h3>
             <p className="hint">
@@ -108,6 +84,23 @@ function SettingsPanel({
           </section>
 
           <section className="settings-section">
+            <h3>AI Summary Endpoint</h3>
+            <p className="hint">
+              URL template for fetching AI-generated summaries. Use{' '}
+              <code>[id]</code> as a placeholder for the article ID.
+            </p>
+            <input
+              type="url"
+              value={summarizeInput}
+              onChange={(e) => setSummarizeInput(e.target.value)}
+              className="rss-url-input"
+            />
+            <button className="save-btn" onClick={handleSaveSummarize}>
+              Save URL
+            </button>
+          </section>
+
+          <section className="settings-section">
             <h3>Danger Zone</h3>
             <p className="hint">
               Deletes all stored articles and reloads everything from the feed endpoint.
@@ -129,9 +122,7 @@ function SettingsPanel({
               <br />
               A personal research and note-taking app with offline support.
             </p>
-            <p className="hint">
-              All data is stored locally on your device. Your API key never leaves your browser.
-            </p>
+            <p className="hint">All data is stored locally on your device.</p>
           </section>
         </div>
       </div>

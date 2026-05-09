@@ -10,7 +10,7 @@ import {
   saveFeed,
 } from './db';
 import { fetchArticlesFromEndpoint, DEFAULT_FEED_ENDPOINT } from './rss';
-import { generatePersonalizedSummary } from './llm';
+import { fetchSummaryFromEndpoint, DEFAULT_SUMMARIZE_ENDPOINT } from './llm';
 import ArticleList from './components/ArticleList';
 import ArticleReader from './components/ArticleReader';
 import SettingsPanel from './components/SettingsPanel';
@@ -25,9 +25,11 @@ function App() {
     pendingChanges: 0,
   });
   const [showSettings, setShowSettings] = useState(false);
-  const [apiKey, setApiKey] = useState(localStorage.getItem('anthropic_api_key') || '');
   const [endpointUrl, setEndpointUrl] = useState(
     localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT
+  );
+  const [summarizeEndpoint, setSummarizeEndpoint] = useState(
+    localStorage.getItem('summarize_endpoint_url') || DEFAULT_SUMMARIZE_ENDPOINT
   );
   const [isLoading, setIsLoading] = useState(false);
 
@@ -136,28 +138,17 @@ function App() {
       return;
     }
 
-    if (!apiKey) {
-      alert('Please set your Anthropic API key in Settings first.');
-      setShowSettings(true);
-      return;
-    }
-
     setIsLoading(true);
     try {
-      const summary = await generatePersonalizedSummary(article, apiKey);
+      const summary = await fetchSummaryFromEndpoint(article.id, summarizeEndpoint);
       const updatedArticle = { ...article, summary, updatedAt: new Date() };
       await handleArticleUpdate(updatedArticle);
     } catch (error) {
       console.error('Error generating summary:', error);
-      alert('Error generating summary. Please check your API key and try again.');
+      alert('Error generating summary. Please check the endpoint URL and try again.');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleSaveApiKey = (key: string) => {
-    localStorage.setItem('anthropic_api_key', key);
-    setApiKey(key);
   };
 
   const handleSaveEndpoint = (url: string) => {
@@ -191,10 +182,13 @@ function App() {
 
       {showSettings && (
         <SettingsPanel
-          apiKey={apiKey}
           endpointUrl={endpointUrl}
-          onSaveApiKey={handleSaveApiKey}
+          summarizeEndpoint={summarizeEndpoint}
           onSaveEndpoint={handleSaveEndpoint}
+          onSaveSummarizeEndpoint={(url) => {
+            localStorage.setItem('summarize_endpoint_url', url);
+            setSummarizeEndpoint(url);
+          }}
           onFetchArticles={handleFetchArticles}
           onClearAndRefresh={handleClearAndRefresh}
           onClose={() => setShowSettings(false)}
