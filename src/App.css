@@ -351,6 +351,10 @@ body {
   color: var(--text-tertiary);
 }
 
+.notes-header.no-pointer {
+  cursor: default;
+}
+
 .notes-section textarea {
   width: 100%;
   padding: 12px;

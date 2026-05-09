@@ -131,23 +131,24 @@ ${format(new Date(article.pubDate), 'MMMM d, yyyy')}`;
       </div>
 
       <div className="summary-section">
-        <div className="summary-header">
+        <div
+          className={`notes-header${article.summary ? '' : ' no-pointer'}`}
+          onClick={article.summary ? () => setShowSummary(!showSummary) : undefined}
+        >
           <h3>AI-Powered Summary</h3>
-          <div className="summary-actions">
-            <button
-              className={`generate-btn ${!isOnline ? 'disabled' : ''}`}
-              onClick={() => onGenerateSummary(article)}
-              disabled={!isOnline}
-              title={!isOnline ? 'Requires internet connection' : ''}
-            >
-              {article.summary ? 'Regenerate' : 'Generate'} Summary
-            </button>
-            {article.summary && (
-              <button className="toggle-btn" onClick={() => setShowSummary(!showSummary)}>
-                {showSummary ? 'Hide' : 'Show'}
-              </button>
-            )}
-          </div>
+          {article.summary && (
+            <span className="collapse-icon">{showSummary ? '▲' : '▼'}</span>
+          )}
+        </div>
+        <div className="summary-actions">
+          <button
+            className={`generate-btn ${!isOnline ? 'disabled' : ''}`}
+            onClick={() => onGenerateSummary(article)}
+            disabled={!isOnline}
+            title={!isOnline ? 'Requires internet connection' : ''}
+          >
+            {article.summary ? 'Regenerate' : 'Generate'} Summary
+          </button>
         </div>
 
         {showSummary && article.summary && (
