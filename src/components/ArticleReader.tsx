@@ -21,8 +21,11 @@ function ArticleReader({
 
   useEffect(() => {
     setNotes(article.notes);
+  }, [article.notes]);
+
+  useEffect(() => {
     setShowSummary(false);
-  }, [article.id, article.notes]);
+  }, [article.id]);
 
   const handleStatusChange = (status: Article['status']) => {
     onUpdate({ ...article, status, updatedAt: new Date() });
@@ -63,14 +66,6 @@ ${format(new Date(article.pubDate), 'MMMM d, yyyy')}`;
         <div className="article-info">
           <span className="article-source-label">{article.source}</span>
           <span>{format(new Date(article.pubDate), 'MMMM d, yyyy')}</span>
-          <a
-            href={article.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="original-link"
-          >
-            View Original ↗
-          </a>
         </div>
       </div>
 
@@ -103,6 +98,18 @@ ${format(new Date(article.pubDate), 'MMMM d, yyyy')}`;
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="reader-tabs">
+        <button className="reader-tab active">Article</button>
+        <a
+          href={article.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="reader-tab"
+        >
+          Original Page ↗
+        </a>
       </div>
 
       <div className="reader-content">
