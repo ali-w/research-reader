@@ -36,6 +36,7 @@ function App() {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [syncErrors, setSyncErrors] = useState<Array<{ id: string; error: string }>>([]);
+  const [randomOrder, setRandomOrder] = useState(false);
 
   useEffect(() => {
     loadArticles();
@@ -52,7 +53,7 @@ function App() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [filter]);
+  }, [filter, randomOrder]);
 
   const loadArticles = async () => {
     try {
@@ -60,7 +61,15 @@ function App() {
         filter === 'all'
           ? await getAllArticles()
           : await getArticlesByStatus(filter);
-      setArticles(allArticles.sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime()));
+      if (randomOrder) {
+        for (let i = allArticles.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [allArticles[i], allArticles[j]] = [allArticles[j], allArticles[i]];
+        }
+        setArticles([...allArticles]);
+      } else {
+        setArticles(allArticles.sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime()));
+      }
     } catch (error) {
       console.error('Error loading articles:', error);
     }
@@ -279,6 +288,13 @@ function App() {
           onClick={() => setFilter('skipped')}
         >
           Skipped
+        </button>
+        <button
+          className={`random-toggle ${randomOrder ? 'active' : ''}`}
+          onClick={() => setRandomOrder(!randomOrder)}
+          title="Shuffle article order"
+        >
+          Random Order
         </button>
       </div>
 

@@ -146,6 +146,17 @@ body {
   border-color: var(--accent-color);
 }
 
+.random-toggle {
+  border-style: dashed !important;
+}
+
+.random-toggle.active {
+  background: var(--accent-color) !important;
+  color: var(--bg-primary) !important;
+  border-color: var(--accent-color) !important;
+  border-style: solid !important;
+}
+
 .main-content {
   display: flex;
   flex: 1;
