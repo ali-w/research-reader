@@ -34,6 +34,9 @@ function App() {
   const [summarizeEndpoint, setSummarizeEndpoint] = useState(
     localStorage.getItem('summarize_endpoint_url') || DEFAULT_SUMMARIZE_ENDPOINT
   );
+  const [apiKey, setApiKey] = useState(
+    localStorage.getItem('api_key') || 'AliWAliW'
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [syncErrors, setSyncErrors] = useState<Array<{ id: string; error: string }>>([]);
   const [randomOrder, setRandomOrder] = useState(false);
@@ -103,7 +106,7 @@ function App() {
       if (Object.keys(patch).length > 0) {
         if (navigator.onLine) {
           try {
-            await patchArticle(updatedArticle.id, patch, endpointUrl);
+            await patchArticle(updatedArticle.id, patch, endpointUrl, apiKey);
             setSyncErrors((prev) => prev.filter((e) => e.id !== updatedArticle.id));
           } catch {
             await upsertPendingSync(updatedArticle.id, patch);
@@ -122,9 +125,10 @@ function App() {
     const pending = await getPendingSyncs();
     if (pending.length === 0) return;
     const url = localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT;
+    const key = localStorage.getItem('api_key') || 'AliWAliW';
     try {
       const updates = pending.map((p) => ({ id: p.id, ...(p.data as SyncPatch) }));
-      const { succeeded, failed } = await batchPatchArticles(updates, url);
+      const { succeeded, failed } = await batchPatchArticles(updates, url, key);
       await removePendingSyncs(succeeded.map(String));
       setSyncErrors(failed.map((f) => ({ id: String(f.id), error: f.error })));
       await updateSyncStatus();
@@ -142,7 +146,7 @@ function App() {
     setIsLoading(true);
     try {
       const maxId = await getMaxArticleId();
-      const fetched = await fetchArticlesFromEndpoint(url);
+      const fetched = await fetchArticlesFromEndpoint(url, apiKey);
       const newArticles = fetched.filter((a) => parseInt(a.id, 10) > maxId);
 
       for (const article of newArticles) {
@@ -170,7 +174,7 @@ function App() {
     try {
       await clearAllArticles();
       setSelectedArticle(null);
-      const fetched = await fetchArticlesFromEndpoint(url);
+      const fetched = await fetchArticlesFromEndpoint(url, apiKey);
       for (const article of fetched) {
         await saveArticle(article);
       }
@@ -193,7 +197,7 @@ function App() {
 
     setIsLoading(true);
     try {
-      const summary = await fetchSummaryFromEndpoint(article.id, summarizeEndpoint);
+      const summary = await fetchSummaryFromEndpoint(article.id, summarizeEndpoint, apiKey);
       const updatedArticle = { ...article, summary, updatedAt: new Date() };
       await handleArticleUpdate(updatedArticle);
     } catch (error) {
@@ -215,6 +219,11 @@ function App() {
   const handleSaveEndpoint = (url: string) => {
     localStorage.setItem('feed_endpoint_url', url);
     setEndpointUrl(url);
+  };
+
+  const handleSaveApiKey = (key: string) => {
+    localStorage.setItem('api_key', key);
+    setApiKey(key);
   };
 
   return (
@@ -260,11 +269,13 @@ function App() {
         <SettingsPanel
           endpointUrl={endpointUrl}
           summarizeEndpoint={summarizeEndpoint}
+          apiKey={apiKey}
           onSaveEndpoint={handleSaveEndpoint}
           onSaveSummarizeEndpoint={(url) => {
             localStorage.setItem('summarize_endpoint_url', url);
             setSummarizeEndpoint(url);
           }}
+          onSaveApiKey={handleSaveApiKey}
           onFetchArticles={handleFetchArticles}
           onClearAndRefresh={handleClearAndRefresh}
           onClose={() => setShowSettings(false)}

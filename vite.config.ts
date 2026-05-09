@@ -32,7 +32,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/newsletter-processor-.*\.run\.app\/.*/i,
+            urlPattern: /^https:\/\/reader-api-.*\.run\.app\/.*/i,
             handler: 'NetworkOnly',
             options: {
               cacheName: 'api-cache'

@@ -1,7 +1,7 @@
 import { Article } from './types';
 
 export const DEFAULT_FEED_ENDPOINT =
-  'https://newsletter-processor-660809700014.europe-west2.run.app/articles?secret=AliWAliW';
+  'https://reader-api-ufwk6luuiq-ew.a.run.app/articles';
 
 interface ApiArticle {
   id: number;
@@ -16,19 +16,16 @@ interface ApiArticle {
   rating?: number | null;
   notes?: string;
   updated_at?: string;
+  note_updated_at?: string;
 }
 
-// Extract a readable sender name from SRS bounce address format
-// e.g. "SRS0=e9f5=df=dailyupdate.tldrnewsletter.com=...@domain" → "dailyupdate.tldrnewsletter.com"
-function extractNewsletterSource(newsletterName: string): string {
-  const match = newsletterName.match(/=df=([^=@]+)/);
-  if (match) return match[1];
-  const atMatch = newsletterName.match(/^([^@]+)@/);
-  return atMatch ? atMatch[1] : newsletterName;
-}
-
-export async function fetchArticlesFromEndpoint(endpointUrl: string = DEFAULT_FEED_ENDPOINT): Promise<Article[]> {
-  const response = await fetch(endpointUrl);
+export async function fetchArticlesFromEndpoint(
+  endpointUrl: string = DEFAULT_FEED_ENDPOINT,
+  apiKey: string = ''
+): Promise<Article[]> {
+  const response = await fetch(`${endpointUrl}?limit=200`, {
+    headers: { 'X-Api-Key': apiKey },
+  });
   if (!response.ok) throw new Error(`Server returned ${response.status}`);
 
   const data: ApiArticle[] = await response.json();
@@ -39,7 +36,7 @@ export async function fetchArticlesFromEndpoint(endpointUrl: string = DEFAULT_FE
     link: item.url,
     content: item.summary,
     pubDate: new Date(item.received_at),
-    source: extractNewsletterSource(item.newsletter_name),
+    source: item.newsletter_name,
     newsletterName: item.newsletter_name,
     status: item.status ?? 'unread',
     rating: (item.rating ?? undefined) as Article['rating'],

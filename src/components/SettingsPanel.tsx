@@ -3,8 +3,10 @@ import { useState } from 'react';
 interface SettingsPanelProps {
   endpointUrl: string;
   summarizeEndpoint: string;
+  apiKey: string;
   onSaveEndpoint: (url: string) => void;
   onSaveSummarizeEndpoint: (url: string) => void;
+  onSaveApiKey: (key: string) => void;
   onFetchArticles: (url: string) => void;
   onClearAndRefresh: (url: string) => void;
   onClose: () => void;
@@ -14,8 +16,10 @@ interface SettingsPanelProps {
 function SettingsPanel({
   endpointUrl,
   summarizeEndpoint,
+  apiKey,
   onSaveEndpoint,
   onSaveSummarizeEndpoint,
+  onSaveApiKey,
   onFetchArticles,
   onClearAndRefresh,
   onClose,
@@ -23,6 +27,7 @@ function SettingsPanel({
 }: SettingsPanelProps) {
   const [endpointInput, setEndpointInput] = useState(endpointUrl);
   const [summarizeInput, setSummarizeInput] = useState(summarizeEndpoint);
+  const [apiKeyInput, setApiKeyInput] = useState(apiKey);
 
   const handleSaveEndpoint = () => {
     onSaveEndpoint(endpointInput);
@@ -32,6 +37,11 @@ function SettingsPanel({
   const handleSaveSummarize = () => {
     onSaveSummarizeEndpoint(summarizeInput);
     alert('Summarize endpoint saved!');
+  };
+
+  const handleSaveApiKey = () => {
+    onSaveApiKey(apiKeyInput);
+    alert('API key saved!');
   };
 
   const handleFetch = () => {
@@ -97,6 +107,23 @@ function SettingsPanel({
             />
             <button className="save-btn" onClick={handleSaveSummarize}>
               Save URL
+            </button>
+          </section>
+
+          <section className="settings-section">
+            <h3>API Key</h3>
+            <p className="hint">
+              Sent as <code>X-Api-Key</code> header on all requests.
+            </p>
+            <input
+              type="password"
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
+              className="rss-url-input"
+              placeholder="Enter API key"
+            />
+            <button className="save-btn" onClick={handleSaveApiKey}>
+              Save Key
             </button>
           </section>
 
