@@ -16,6 +16,7 @@ function ArticleReader({
   isOnline,
 }: ArticleReaderProps) {
   const [notes, setNotes] = useState(article.notes);
+  const [showNotes, setShowNotes] = useState(true);
   const [showSummary, setShowSummary] = useState(false);
 
   useEffect(() => {
@@ -109,17 +110,24 @@ ${format(new Date(article.pubDate), 'MMMM d, yyyy')}`;
       </div>
 
       <div className="notes-section">
-        <label htmlFor="notes">Personal Notes:</label>
-        <textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Add your thoughts, insights, or key takeaways..."
-          rows={6}
-        />
-        <button className="save-notes-btn" onClick={handleSaveNotes}>
-          Save Notes
-        </button>
+        <div className="notes-header" onClick={() => setShowNotes(!showNotes)}>
+          <h3>Personal Notes</h3>
+          <span className="collapse-icon">{showNotes ? '▲' : '▼'}</span>
+        </div>
+        {showNotes && (
+          <>
+            <textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add your thoughts, insights, or key takeaways..."
+              rows={6}
+            />
+            <button className="save-notes-btn" onClick={handleSaveNotes}>
+              Save Notes
+            </button>
+          </>
+        )}
       </div>
 
       <div className="summary-section">

@@ -332,11 +332,23 @@ body {
   margin-bottom: 32px;
 }
 
-.notes-section label {
-  display: block;
-  font-size: 16px;
-  font-weight: 600;
+.notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
   margin-bottom: 12px;
+}
+
+.notes-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.collapse-icon {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .notes-section textarea {
