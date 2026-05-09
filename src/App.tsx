@@ -1,0 +1,239 @@
+import { useState, useEffect } from 'react';
+import { Article, SyncStatus } from './types';
+import {
+  getAllArticles,
+  saveArticle,
+  getMaxArticleId,
+  getArticlesByStatus,
+  getPendingSyncs,
+  saveFeed,
+} from './db';
+import { fetchArticlesFromEndpoint, DEFAULT_FEED_ENDPOINT } from './rss';
+import { generatePersonalizedSummary } from './llm';
+import ArticleList from './components/ArticleList';
+import ArticleReader from './components/ArticleReader';
+import SettingsPanel from './components/SettingsPanel';
+import './App.css';
+
+function App() {
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [filter, setFilter] = useState<'all' | 'unread' | 'read' | 'skipped'>('unread');
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({
+    isOnline: navigator.onLine,
+    pendingChanges: 0,
+  });
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiKey, setApiKey] = useState(localStorage.getItem('anthropic_api_key') || '');
+  const [endpointUrl, setEndpointUrl] = useState(
+    localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT
+  );
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    loadArticles();
+    updateSyncStatus();
+
+    const handleOnline = () => updateSyncStatus();
+    const handleOffline = () => updateSyncStatus();
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [filter]);
+
+  const loadArticles = async () => {
+    try {
+      const allArticles =
+        filter === 'all'
+          ? await getAllArticles()
+          : await getArticlesByStatus(filter);
+      setArticles(allArticles.sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime()));
+    } catch (error) {
+      console.error('Error loading articles:', error);
+    }
+  };
+
+  const updateSyncStatus = async () => {
+    const pending = await getPendingSyncs();
+    setSyncStatus({
+      isOnline: navigator.onLine,
+      lastSync: new Date(),
+      pendingChanges: pending.length,
+    });
+  };
+
+  const handleArticleUpdate = async (updatedArticle: Article) => {
+    try {
+      await saveArticle(updatedArticle);
+      await loadArticles();
+      setSelectedArticle(updatedArticle);
+    } catch (error) {
+      console.error('Error updating article:', error);
+    }
+  };
+
+  const handleFetchArticles = async (url: string) => {
+    if (!navigator.onLine) {
+      alert('You are offline. Please connect to the internet to fetch new articles.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const maxId = await getMaxArticleId();
+      const fetched = await fetchArticlesFromEndpoint(url);
+      const newArticles = fetched.filter((a) => parseInt(a.id, 10) > maxId);
+
+      for (const article of newArticles) {
+        await saveArticle(article);
+      }
+
+      await saveFeed({ url, title: 'Newsletter Feed', lastFetched: new Date() });
+      await loadArticles();
+      alert(`Fetched ${fetched.length} articles (${newArticles.length} new)`);
+    } catch (error) {
+      console.error('Error fetching articles:', error);
+      alert('Error fetching articles. Please check the endpoint URL and try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGenerateSummary = async (article: Article) => {
+    if (!navigator.onLine) {
+      alert('You are offline. Summary generation requires an internet connection.');
+      return;
+    }
+
+    if (!apiKey) {
+      alert('Please set your Anthropic API key in Settings first.');
+      setShowSettings(true);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const summary = await generatePersonalizedSummary(article, apiKey);
+      const updatedArticle = { ...article, summary, updatedAt: new Date() };
+      await handleArticleUpdate(updatedArticle);
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      alert('Error generating summary. Please check your API key and try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveApiKey = (key: string) => {
+    localStorage.setItem('anthropic_api_key', key);
+    setApiKey(key);
+  };
+
+  const handleSaveEndpoint = (url: string) => {
+    localStorage.setItem('feed_endpoint_url', url);
+    setEndpointUrl(url);
+  };
+
+  return (
+    <div className="app">
+      <header className="header">
+        <h1>Research Reader</h1>
+        <div className="header-actions">
+          <div className="sync-status">
+            <span className={`status-dot ${syncStatus.isOnline ? 'online' : 'offline'}`} />
+            <span className="status-text">
+              {syncStatus.isOnline ? 'Online' : 'Offline'}
+            </span>
+            {syncStatus.pendingChanges > 0 && (
+              <span className="pending-badge">{syncStatus.pendingChanges}</span>
+            )}
+          </div>
+          <button
+            className="settings-btn"
+            onClick={() => setShowSettings(!showSettings)}
+            aria-label="Settings"
+          >
+            ⚙
+          </button>
+        </div>
+      </header>
+
+      {showSettings && (
+        <SettingsPanel
+          apiKey={apiKey}
+          endpointUrl={endpointUrl}
+          onSaveApiKey={handleSaveApiKey}
+          onSaveEndpoint={handleSaveEndpoint}
+          onFetchArticles={handleFetchArticles}
+          onClose={() => setShowSettings(false)}
+          isOnline={syncStatus.isOnline}
+        />
+      )}
+
+      <div className="filter-bar">
+        <button
+          className={filter === 'all' ? 'active' : ''}
+          onClick={() => setFilter('all')}
+        >
+          All
+        </button>
+        <button
+          className={filter === 'unread' ? 'active' : ''}
+          onClick={() => setFilter('unread')}
+        >
+          Unread
+        </button>
+        <button
+          className={filter === 'read' ? 'active' : ''}
+          onClick={() => setFilter('read')}
+        >
+          Read
+        </button>
+        <button
+          className={filter === 'skipped' ? 'active' : ''}
+          onClick={() => setFilter('skipped')}
+        >
+          Skipped
+        </button>
+      </div>
+
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="loading-spinner">Loading...</div>
+        </div>
+      )}
+
+      <div className="main-content">
+        <div className="article-list-panel">
+          <ArticleList
+            articles={articles}
+            selectedArticle={selectedArticle}
+            onSelectArticle={setSelectedArticle}
+          />
+        </div>
+
+        <div className="article-reader-panel">
+          {selectedArticle ? (
+            <ArticleReader
+              article={selectedArticle}
+              onUpdate={handleArticleUpdate}
+              onGenerateSummary={handleGenerateSummary}
+              isOnline={syncStatus.isOnline}
+            />
+          ) : (
+            <div className="empty-state">
+              <p>Select an article to read</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
