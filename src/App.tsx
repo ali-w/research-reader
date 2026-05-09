@@ -204,6 +204,13 @@ function App() {
     }
   };
 
+  const handleSelectArticle = (article: Article) => {
+    setSelectedArticle(article);
+    if (article.status === 'unread') {
+      handleArticleUpdate({ ...article, status: 'read', updatedAt: new Date() });
+    }
+  };
+
   const handleSaveEndpoint = (url: string) => {
     localStorage.setItem('feed_endpoint_url', url);
     setEndpointUrl(url);
@@ -309,7 +316,7 @@ function App() {
           <ArticleList
             articles={articles}
             selectedArticle={selectedArticle}
-            onSelectArticle={setSelectedArticle}
+            onSelectArticle={handleSelectArticle}
           />
         </div>
 
