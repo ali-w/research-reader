@@ -46,34 +46,19 @@ function App() {
   const [syncErrors, setSyncErrors] = useState<Array<{ id: string; error: string }>>([]);
   const [randomOrder, setRandomOrder] = useState(false);
   const [newArticleCount, setNewArticleCount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // Startup-only: silently fetch new articles once on mount
+  // Startup: pull delta then push pending
   useEffect(() => {
-    if (!navigator.onLine) return;
-    (async () => {
-      try {
-        const url = localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT;
-        const key = localStorage.getItem('api_key') || 'AliWAliW';
-        const maxId = await getMaxArticleId();
-        const fetched = await fetchArticlesFromEndpoint(url, key);
-        const fresh = fetched.filter((a) => parseInt(a.id, 10) > maxId);
-        if (fresh.length > 0) {
-          for (const article of fresh) await saveArticle(article);
-          await loadArticles();
-          setNewArticleCount(fresh.length);
-        }
-      } catch {
-        // silently ignore — user can manually fetch via Settings
-      }
-    })();
-  }, []);
+    if (navigator.onLine) handleDeltaSync(); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     loadArticles();
     updateSyncStatus();
     if (navigator.onLine) flushPendingSync();
 
-    const handleOnline = () => { updateSyncStatus(); flushPendingSync(); };
+    const handleOnline = () => { updateSyncStatus(); handleDeltaSync(); };
     const handleOffline = () => updateSyncStatus();
 
     window.addEventListener('online', handleOnline);
@@ -176,6 +161,36 @@ function App() {
       await updateSyncStatus();
     } catch (error) {
       console.error('Failed to flush pending sync:', error);
+    }
+  };
+
+  const handleDeltaSync = async () => {
+    if (!navigator.onLine) return;
+    setIsSyncing(true);
+    try {
+      const url = localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT;
+      const key = localStorage.getItem('api_key') || 'AliWAliW';
+      const lastSync = localStorage.getItem('last_sync_at') ?? undefined;
+      const maxId = await getMaxArticleId();
+
+      const fetched = await fetchArticlesFromEndpoint(url, key, lastSync);
+
+      if (fetched.length > 0) {
+        for (const article of fetched) await saveArticle(article);
+        // Discard pending syncs for articles the server just updated — local copies are stale
+        await removePendingSyncs(fetched.map((a) => a.id));
+        const newCount = fetched.filter((a) => parseInt(a.id, 10) > maxId).length;
+        if (newCount > 0) setNewArticleCount(newCount);
+        await loadArticles();
+      }
+
+      localStorage.setItem('last_sync_at', new Date().toISOString());
+      // Push remaining pending syncs (articles the server didn't touch)
+      await flushPendingSync();
+    } catch {
+      // silently ignore
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -351,23 +366,28 @@ function App() {
             const hasPending = syncStatus.pendingChanges > 0;
             const dotState = !syncStatus.isOnline ? 'offline'
               : hasSyncErrors ? 'sync-error'
-              : hasPending ? 'syncing'
+              : hasPending || isSyncing ? 'syncing'
               : newArticleCount > 0 ? 'new-articles'
               : 'online';
             const statusText = !syncStatus.isOnline ? 'Offline'
               : hasSyncErrors ? 'Sync failed'
               : hasPending ? 'Syncing...'
+              : isSyncing ? 'Checking…'
               : newArticleCount > 0 ? `${newArticleCount} new article${newArticleCount === 1 ? '' : 's'}`
               : 'Online & up to date';
             const tooltip = hasSyncErrors
               ? syncErrors.map((e) => `Article ${e.id}: ${e.error}`).join('\n')
               : undefined;
+            const handleStatusClick =
+              newArticleCount > 0 ? () => setNewArticleCount(0) :
+              dotState === 'online' ? handleDeltaSync :
+              undefined;
             return (
               <div
                 className="sync-status"
                 title={tooltip}
-                onClick={newArticleCount > 0 ? () => setNewArticleCount(0) : undefined}
-                style={newArticleCount > 0 ? { cursor: 'pointer' } : undefined}
+                onClick={handleStatusClick}
+                style={handleStatusClick ? { cursor: 'pointer' } : undefined}
               >
                 <span className={`status-dot ${dotState}`} />
                 <span className="status-text">{statusText}</span>

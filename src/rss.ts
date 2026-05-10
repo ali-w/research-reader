@@ -26,9 +26,13 @@ interface ApiArticle {
 
 export async function fetchArticlesFromEndpoint(
   endpointUrl: string = DEFAULT_FEED_ENDPOINT,
-  apiKey: string = ''
+  apiKey: string = '',
+  updatedSince?: string
 ): Promise<Article[]> {
-  const response = await fetch(`${endpointUrl}?limit=200`, {
+  const qs = updatedSince
+    ? `?limit=200&updated_since=${encodeURIComponent(updatedSince)}`
+    : '?limit=200';
+  const response = await fetch(`${endpointUrl}${qs}`, {
     headers: { 'X-Api-Key': apiKey },
   });
   if (!response.ok) throw new Error(`Server returned ${response.status}`);
