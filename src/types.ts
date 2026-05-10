@@ -12,7 +12,7 @@ export interface Article {
   notes: string;
   summary?: string;
   tags?: string[];
-  contentType?: 'newsletter' | 'webpage' | 'pdf';
+  contentType?: 'newsletter' | 'article' | 'video' | 'podcast' | 'other';
   createdAt: Date;
   updatedAt: Date;
 }

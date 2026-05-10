@@ -32,6 +32,7 @@ function App() {
   });
   const [showSettings, setShowSettings] = useState(false);
   const [showClipper, setShowClipper] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [endpointUrl, setEndpointUrl] = useState(
     localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT
   );
@@ -428,7 +429,15 @@ function App() {
           >
             Shuffle Order
           </button>
+          <button
+            className={`mobile-filter-toggle ${(showMobileFilters || !!searchQuery || !!selectedTag) ? 'active' : ''}`}
+            onClick={() => setShowMobileFilters((v) => !v)}
+            aria-label="Toggle search and tag filters"
+          >
+            {(showMobileFilters || !!searchQuery || !!selectedTag) ? 'Search ▲' : 'Search ▼'}
+          </button>
         </div>
+        <div className={`filter-expandable${(showMobileFilters || !!searchQuery || !!selectedTag) ? '' : ' collapsed'}`}>
         <div className="search-row">
           <input
             type="search"
@@ -457,6 +466,7 @@ function App() {
             ))}
           </div>
         )}
+        </div>
       </div>
 
       {isLoading && (
