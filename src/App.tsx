@@ -42,6 +42,28 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [syncErrors, setSyncErrors] = useState<Array<{ id: string; error: string }>>([]);
   const [randomOrder, setRandomOrder] = useState(false);
+  const [newArticleCount, setNewArticleCount] = useState(0);
+
+  // Startup-only: silently fetch new articles once on mount
+  useEffect(() => {
+    if (!navigator.onLine) return;
+    (async () => {
+      try {
+        const url = localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT;
+        const key = localStorage.getItem('api_key') || 'AliWAliW';
+        const maxId = await getMaxArticleId();
+        const fetched = await fetchArticlesFromEndpoint(url, key);
+        const fresh = fetched.filter((a) => parseInt(a.id, 10) > maxId);
+        if (fresh.length > 0) {
+          for (const article of fresh) await saveArticle(article);
+          await loadArticles();
+          setNewArticleCount(fresh.length);
+        }
+      } catch {
+        // silently ignore — user can manually fetch via Settings
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     loadArticles();
@@ -251,16 +273,23 @@ function App() {
             const dotState = !syncStatus.isOnline ? 'offline'
               : hasSyncErrors ? 'sync-error'
               : hasPending ? 'syncing'
+              : newArticleCount > 0 ? 'new-articles'
               : 'online';
             const statusText = !syncStatus.isOnline ? 'Offline'
               : hasSyncErrors ? 'Sync failed'
               : hasPending ? 'Syncing...'
+              : newArticleCount > 0 ? `${newArticleCount} new article${newArticleCount === 1 ? '' : 's'}`
               : 'Online & up to date';
             const tooltip = hasSyncErrors
               ? syncErrors.map((e) => `Article ${e.id}: ${e.error}`).join('\n')
               : undefined;
             return (
-              <div className="sync-status" title={tooltip}>
+              <div
+                className="sync-status"
+                title={tooltip}
+                onClick={newArticleCount > 0 ? () => setNewArticleCount(0) : undefined}
+                style={newArticleCount > 0 ? { cursor: 'pointer' } : undefined}
+              >
                 <span className={`status-dot ${dotState}`} />
                 <span className="status-text">{statusText}</span>
                 {hasPending && (

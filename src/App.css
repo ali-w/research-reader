@@ -91,6 +91,10 @@ body {
   background: var(--error-color);
 }
 
+.status-dot.new-articles {
+  background: #1a6bbf;
+}
+
 .status-text {
   font-size: 14px;
   font-weight: 500;
