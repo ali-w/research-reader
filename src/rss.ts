@@ -1,7 +1,7 @@
 import { Article } from './types';
 
-export const DEFAULT_FEED_ENDPOINT =
-  'https://reader-api-ufwk6luuiq-ew.a.run.app/articles';
+export const DEFAULT_READER_ROOT =
+  'https://reader-api-ufwk6luuiq-ew.a.run.app';
 
 interface ApiArticle {
   id: number;
@@ -25,14 +25,14 @@ interface ApiArticle {
 }
 
 export async function fetchArticlesFromEndpoint(
-  endpointUrl: string = DEFAULT_FEED_ENDPOINT,
+  endpointUrl: string = DEFAULT_READER_ROOT,
   apiKey: string = '',
   updatedSince?: string
 ): Promise<Article[]> {
   const qs = updatedSince
     ? `?limit=200&updated_since=${encodeURIComponent(updatedSince)}`
     : '?limit=200';
-  const response = await fetch(`${endpointUrl}${qs}`, {
+  const response = await fetch(`${endpointUrl}/articles${qs}`, {
     headers: { 'X-Api-Key': apiKey },
   });
   if (!response.ok) throw new Error(`Server returned ${response.status}`);

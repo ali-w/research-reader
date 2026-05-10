@@ -6,17 +6,13 @@ export type SyncPatch = {
   tags?: string[];
 };
 
-function baseUrl(feedEndpoint: string): string {
-  return new URL(feedEndpoint).origin;
-}
-
 export async function patchArticle(
   articleId: string,
   patch: SyncPatch,
   feedEndpoint: string,
   apiKey: string
 ): Promise<void> {
-  const res = await fetch(`${baseUrl(feedEndpoint)}/articles/${articleId}`, {
+  const res = await fetch(`${feedEndpoint}/articles/${articleId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
     body: JSON.stringify(patch),
@@ -36,7 +32,7 @@ export async function createArticle(
   feedEndpoint: string,
   apiKey: string
 ): Promise<{ id: number }> {
-  const res = await fetch(`${baseUrl(feedEndpoint)}/articles`, {
+  const res = await fetch(`${feedEndpoint}/articles`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
     body: JSON.stringify(payload),
@@ -51,7 +47,7 @@ export async function batchPatchArticles(
   apiKey: string
 ): Promise<{ succeeded: number[]; failed: Array<{ id: number; error: string }> }> {
   const body = updates.map(({ id, ...patch }) => ({ id: parseInt(id, 10), ...patch }));
-  const res = await fetch(`${baseUrl(feedEndpoint)}/articles/updates`, {
+  const res = await fetch(`${feedEndpoint}/articles/updates`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
     body: JSON.stringify(body),

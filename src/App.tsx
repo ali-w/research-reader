@@ -10,8 +10,8 @@ import {
   removePendingSyncs,
   saveFeed,
 } from './db';
-import { fetchArticlesFromEndpoint, DEFAULT_FEED_ENDPOINT } from './rss';
-import { fetchSummaryFromEndpoint, DEFAULT_SUMMARIZE_ENDPOINT, describeArticle } from './llm';
+import { fetchArticlesFromEndpoint, DEFAULT_READER_ROOT } from './rss';
+import { fetchSummaryFromEndpoint, DEFAULT_SUMMARIZE_ROOT, describeArticle } from './llm';
 import { patchArticle, batchPatchArticles, SyncPatch, createArticle } from './sync';
 import ArticleList from './components/ArticleList';
 import ArticleReader from './components/ArticleReader';
@@ -33,14 +33,14 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showClipper, setShowClipper] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [endpointUrl, setEndpointUrl] = useState(
-    localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT
+  const [readerRoot, setReaderRoot] = useState(
+    localStorage.getItem('reader_api_root') || DEFAULT_READER_ROOT
   );
-  const [summarizeEndpoint, setSummarizeEndpoint] = useState(
-    localStorage.getItem('summarize_endpoint_url') || DEFAULT_SUMMARIZE_ENDPOINT
+  const [summarizeRoot, setSummarizeRoot] = useState(
+    localStorage.getItem('summarize_api_root') || DEFAULT_SUMMARIZE_ROOT
   );
   const [apiKey, setApiKey] = useState(
-    localStorage.getItem('api_key') || 'AliWAliW'
+    localStorage.getItem('api_key') || ''
   );
   const [isLoading, setIsLoading] = useState(false);
   const [syncErrors, setSyncErrors] = useState<Array<{ id: string; error: string }>>([]);
@@ -130,7 +130,7 @@ function App() {
       if (Object.keys(patch).length > 0) {
         if (navigator.onLine) {
           try {
-            await patchArticle(updatedArticle.id, patch, endpointUrl, apiKey);
+            await patchArticle(updatedArticle.id, patch, readerRoot, apiKey);
             setSyncErrors((prev) => prev.filter((e) => e.id !== updatedArticle.id));
             if (patch.saved === true) {
               setTimeout(() => handleRefreshArticle(updatedArticle.id), 20_000);
@@ -151,8 +151,8 @@ function App() {
   const flushPendingSync = async () => {
     const pending = await getPendingSyncs();
     if (pending.length === 0) return;
-    const url = localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT;
-    const key = localStorage.getItem('api_key') || 'AliWAliW';
+    const url = localStorage.getItem('reader_api_root') || DEFAULT_READER_ROOT;
+    const key = localStorage.getItem('api_key') || '';
     try {
       const updates = pending.map((p) => ({ id: p.id, ...(p.data as SyncPatch) }));
       const { succeeded, failed } = await batchPatchArticles(updates, url, key);
@@ -168,8 +168,8 @@ function App() {
     if (!navigator.onLine) return;
     setIsSyncing(true);
     try {
-      const url = localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT;
-      const key = localStorage.getItem('api_key') || 'AliWAliW';
+      const url = localStorage.getItem('reader_api_root') || DEFAULT_READER_ROOT;
+      const key = localStorage.getItem('api_key') || '';
       const lastSync = localStorage.getItem('last_sync_at') ?? undefined;
       const maxId = await getMaxArticleId();
 
@@ -254,7 +254,7 @@ function App() {
 
     setIsLoading(true);
     try {
-      const summary = await fetchSummaryFromEndpoint(article.id, summarizeEndpoint, apiKey);
+      const summary = await fetchSummaryFromEndpoint(article.id, summarizeRoot, apiKey);
       const updatedArticle = { ...article, summary, updatedAt: new Date() };
       await handleArticleUpdate(updatedArticle);
     } catch (error) {
@@ -266,15 +266,14 @@ function App() {
   };
 
   const handleOpenCached = async (article: Article) => {
-    const ep = localStorage.getItem('summarize_endpoint_url') || DEFAULT_SUMMARIZE_ENDPOINT;
-    const key = localStorage.getItem('api_key') || 'AliWAliW';
-    const origin = new URL(ep).origin;
-    window.open(`${origin}/articles/${article.id}/cached-content?secret=${key}`, '_blank');
+    const root = localStorage.getItem('summarize_api_root') || DEFAULT_SUMMARIZE_ROOT;
+    const key = localStorage.getItem('api_key') || '';
+    window.open(`${root}/articles/${article.id}/cached-content?secret=${key}`, '_blank');
   };
 
   const handleRefreshArticle = async (articleId: string) => {
-    const url = localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT;
-    const key = localStorage.getItem('api_key') || 'AliWAliW';
+    const url = localStorage.getItem('reader_api_root') || DEFAULT_READER_ROOT;
+    const key = localStorage.getItem('api_key') || '';
     const fetched = await fetchArticlesFromEndpoint(url, key);
     const updated = fetched.find((a) => a.id === articleId);
     if (!updated) return;
@@ -300,9 +299,9 @@ function App() {
     useAI: boolean;
     onPhaseChange: (phase: 'describing') => void;
   }) => {
-    const endpoint = localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT;
-    const key = localStorage.getItem('api_key') || 'AliWAliW';
-    const summarizeEp = localStorage.getItem('summarize_endpoint_url') || DEFAULT_SUMMARIZE_ENDPOINT;
+    const endpoint = localStorage.getItem('reader_api_root') || DEFAULT_READER_ROOT;
+    const key = localStorage.getItem('api_key') || '';
+    const summarizeEp = localStorage.getItem('summarize_api_root') || DEFAULT_SUMMARIZE_ROOT;
 
     const { id } = await createArticle(
       { title, url, summary, tags, content_type: contentType, saved: true },
@@ -347,8 +346,8 @@ function App() {
   };
 
   const handleSaveEndpoint = (url: string) => {
-    localStorage.setItem('feed_endpoint_url', url);
-    setEndpointUrl(url);
+    localStorage.setItem('reader_api_root', url);
+    setReaderRoot(url);
   };
 
   const handleSaveApiKey = (key: string) => {
@@ -425,13 +424,13 @@ function App() {
 
       {showSettings && (
         <SettingsPanel
-          endpointUrl={endpointUrl}
-          summarizeEndpoint={summarizeEndpoint}
+          readerRoot={readerRoot}
+          summarizeRoot={summarizeRoot}
           apiKey={apiKey}
           onSaveEndpoint={handleSaveEndpoint}
           onSaveSummarizeEndpoint={(url) => {
-            localStorage.setItem('summarize_endpoint_url', url);
-            setSummarizeEndpoint(url);
+            localStorage.setItem('summarize_api_root', url);
+            setSummarizeRoot(url);
           }}
           onSaveApiKey={handleSaveApiKey}
           onFetchArticles={handleFetchArticles}

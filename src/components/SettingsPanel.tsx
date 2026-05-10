@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
 interface SettingsPanelProps {
-  endpointUrl: string;
-  summarizeEndpoint: string;
+  readerRoot: string;
+  summarizeRoot: string;
   apiKey: string;
   onSaveEndpoint: (url: string) => void;
   onSaveSummarizeEndpoint: (url: string) => void;
@@ -14,8 +14,8 @@ interface SettingsPanelProps {
 }
 
 function SettingsPanel({
-  endpointUrl,
-  summarizeEndpoint,
+  readerRoot,
+  summarizeRoot,
   apiKey,
   onSaveEndpoint,
   onSaveSummarizeEndpoint,
@@ -25,8 +25,8 @@ function SettingsPanel({
   onClose,
   isOnline,
 }: SettingsPanelProps) {
-  const [endpointInput, setEndpointInput] = useState(endpointUrl);
-  const [summarizeInput, setSummarizeInput] = useState(summarizeEndpoint);
+  const [endpointInput, setEndpointInput] = useState(readerRoot);
+  const [summarizeInput, setSummarizeInput] = useState(summarizeRoot);
   const [apiKeyInput, setApiKeyInput] = useState(apiKey);
 
   const handleSaveEndpoint = () => {
@@ -65,9 +65,9 @@ function SettingsPanel({
 
         <div className="settings-content">
           <section className="settings-section">
-            <h3>Article Feed Endpoint</h3>
+            <h3>Reader API Root</h3>
             <p className="hint">
-              URL of the JSON endpoint that provides newsletter articles.
+              Root URL of the reader API (e.g. https://reader-api-ufwk6luuiq-ew.a.run.app).
             </p>
             <input
               type="url"
@@ -94,10 +94,9 @@ function SettingsPanel({
           </section>
 
           <section className="settings-section">
-            <h3>AI Summary Endpoint</h3>
+            <h3>Summarize API Root</h3>
             <p className="hint">
-              URL template for fetching AI-generated summaries. Use{' '}
-              <code>[id]</code> as a placeholder for the article ID.
+              Root URL of the summarize API (e.g. https://summarize-ufwk6luuiq-ew.a.run.app).
             </p>
             <input
               type="url"
