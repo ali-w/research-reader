@@ -13,3 +13,16 @@ export async function fetchSummaryFromEndpoint(
   if (!response.ok) throw new Error(`Server returned ${response.status}`);
   return response.text();
 }
+
+export async function describeArticle(
+  articleId: string,
+  endpointTemplate: string,
+  apiKey: string
+): Promise<{ summary: string; suggestedTag: string }> {
+  const origin = new URL(endpointTemplate).origin;
+  const response = await fetch(`${origin}/articles/${articleId}/describe`, {
+    headers: { 'X-Api-Key': apiKey },
+  });
+  if (!response.ok) throw new Error(`Server returned ${response.status}`);
+  return response.json();
+}

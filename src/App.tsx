@@ -11,11 +11,12 @@ import {
   saveFeed,
 } from './db';
 import { fetchArticlesFromEndpoint, DEFAULT_FEED_ENDPOINT } from './rss';
-import { fetchSummaryFromEndpoint, DEFAULT_SUMMARIZE_ENDPOINT } from './llm';
-import { patchArticle, batchPatchArticles, SyncPatch } from './sync';
+import { fetchSummaryFromEndpoint, DEFAULT_SUMMARIZE_ENDPOINT, describeArticle } from './llm';
+import { patchArticle, batchPatchArticles, SyncPatch, createArticle } from './sync';
 import ArticleList from './components/ArticleList';
 import ArticleReader from './components/ArticleReader';
 import SettingsPanel from './components/SettingsPanel';
+import WebClipper from './components/WebClipper';
 import './App.css';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
     pendingChanges: 0,
   });
   const [showSettings, setShowSettings] = useState(false);
+  const [showClipper, setShowClipper] = useState(false);
   const [endpointUrl, setEndpointUrl] = useState(
     localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT
   );
@@ -244,6 +246,72 @@ function App() {
     }
   };
 
+  const handleRefreshArticle = async (articleId: string) => {
+    const url = localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT;
+    const key = localStorage.getItem('api_key') || 'AliWAliW';
+    const fetched = await fetchArticlesFromEndpoint(url, key);
+    const updated = fetched.find((a) => a.id === articleId);
+    if (!updated) return;
+    await saveArticle(updated);
+    if (selectedArticle?.id === articleId) setSelectedArticle(updated);
+    await loadArticles();
+  };
+
+  const handleClip = async ({
+    url,
+    title,
+    summary,
+    tags,
+    contentType,
+    useAI,
+    onPhaseChange,
+  }: {
+    url: string;
+    title: string;
+    summary?: string;
+    tags: string[];
+    contentType: 'webpage';
+    useAI: boolean;
+    onPhaseChange: (phase: 'describing') => void;
+  }) => {
+    const endpoint = localStorage.getItem('feed_endpoint_url') || DEFAULT_FEED_ENDPOINT;
+    const key = localStorage.getItem('api_key') || 'AliWAliW';
+    const summarizeEp = localStorage.getItem('summarize_endpoint_url') || DEFAULT_SUMMARIZE_ENDPOINT;
+
+    const { id } = await createArticle(
+      { title, url, summary, tags, content_type: contentType, saved: true },
+      endpoint,
+      key
+    );
+
+    const hostname = (() => { try { return new URL(url).hostname; } catch { return url; } })();
+    const now = new Date();
+    const article: Article = {
+      id: String(id),
+      title,
+      link: url,
+      content: summary ?? '',
+      pubDate: now,
+      source: hostname,
+      status: 'unread',
+      saved: true,
+      tags,
+      contentType,
+      notes: '',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await saveArticle(article);
+    await loadArticles();
+
+    if (useAI) {
+      onPhaseChange('describing');
+      await describeArticle(String(id), summarizeEp, key);
+      await handleRefreshArticle(String(id));
+    }
+  };
+
   const handleSelectArticle = (article: Article) => {
     if (selectedArticle?.id === article.id) return;
     setSelectedArticle(article);
@@ -299,6 +367,13 @@ function App() {
             );
           })()}
           <button
+            className="clip-btn"
+            onClick={() => setShowClipper(true)}
+            aria-label="Add article"
+          >
+            + Clip
+          </button>
+          <button
             className="settings-btn"
             onClick={() => setShowSettings(!showSettings)}
             aria-label="Settings"
@@ -307,6 +382,15 @@ function App() {
           </button>
         </div>
       </header>
+
+      {showClipper && (
+        <WebClipper
+          allTags={allTags}
+          isOnline={syncStatus.isOnline}
+          onClose={() => setShowClipper(false)}
+          onClip={handleClip}
+        />
+      )}
 
       {showSettings && (
         <SettingsPanel
@@ -410,6 +494,7 @@ function App() {
               article={selectedArticle}
               onUpdate={handleArticleUpdate}
               onGenerateSummary={handleGenerateSummary}
+              onRefresh={() => handleRefreshArticle(selectedArticle.id)}
               isOnline={syncStatus.isOnline}
               allTags={allTags}
             />

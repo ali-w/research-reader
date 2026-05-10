@@ -24,6 +24,27 @@ export async function patchArticle(
   if (!res.ok) throw new Error(`PATCH /articles/${articleId} failed: ${res.status}`);
 }
 
+export async function createArticle(
+  payload: {
+    title: string;
+    url: string;
+    summary?: string;
+    tags?: string[];
+    content_type?: string;
+    saved?: boolean;
+  },
+  feedEndpoint: string,
+  apiKey: string
+): Promise<{ id: number }> {
+  const res = await fetch(`${baseUrl(feedEndpoint)}/articles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`POST /articles failed: ${res.status}`);
+  return res.json();
+}
+
 export async function batchPatchArticles(
   updates: Array<{ id: string } & SyncPatch>,
   feedEndpoint: string,

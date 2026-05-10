@@ -122,6 +122,20 @@ body {
   background: var(--bg-secondary);
 }
 
+.clip-btn {
+  font-size: 14px;
+  font-weight: 600;
+  background: none;
+  border: 1px solid var(--border-color);
+  padding: 8px 14px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.clip-btn:hover {
+  background: var(--bg-secondary);
+}
+
 .filter-bar {
   display: flex;
   flex-direction: column;
@@ -860,6 +874,95 @@ body {
   font-size: 13px;
   margin-top: 8px;
   font-weight: 500;
+}
+
+/* Web Clipper */
+.clipper-type-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.clipper-tab {
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+.clipper-tab.active {
+  background: var(--accent-color);
+  color: var(--bg-primary);
+  border-color: var(--accent-color);
+}
+
+.clipper-tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.clipper-status {
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.clipper-error {
+  color: var(--error-color);
+}
+
+.clipper-error p {
+  margin-bottom: 16px;
+}
+
+.clipper-summary-input {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  resize: vertical;
+  background: var(--bg-primary);
+}
+
+.clipper-summary-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.hint-inline {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+.save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Refresh button in article-info row */
+.refresh-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-tertiary);
+  padding: 0;
+  font-family: inherit;
+}
+
+.refresh-btn:hover {
+  color: var(--text-primary);
+}
+
+.refresh-btn:disabled {
+  cursor: not-allowed;
 }
 
 .loading-overlay {

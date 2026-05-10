@@ -6,6 +6,7 @@ interface ArticleReaderProps {
   article: Article;
   onUpdate: (article: Article) => void;
   onGenerateSummary: (article: Article) => void;
+  onRefresh: () => Promise<void>;
   isOnline: boolean;
   allTags: string[];
 }
@@ -14,6 +15,7 @@ function ArticleReader({
   article,
   onUpdate,
   onGenerateSummary,
+  onRefresh,
   isOnline,
   allTags,
 }: ArticleReaderProps) {
@@ -22,6 +24,7 @@ function ArticleReader({
   const [showSummary, setShowSummary] = useState(false);
   const [tagInput, setTagInput] = useState('');
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -103,6 +106,17 @@ ${format(new Date(article.pubDate), 'MMMM d, yyyy')}`;
         <div className="article-info">
           <span className="article-source-label">{article.source}</span>
           <span>{format(new Date(article.pubDate), 'MMMM d, yyyy')}</span>
+          <button
+            className="refresh-btn"
+            disabled={refreshing}
+            onClick={async () => {
+              setRefreshing(true);
+              try { await onRefresh(); } finally { setRefreshing(false); }
+            }}
+            title="Refresh from server"
+          >
+            {refreshing ? '↻ Refreshing…' : '↻ Refresh'}
+          </button>
         </div>
       </div>
 
