@@ -7,6 +7,8 @@ interface ArticleReaderProps {
   onUpdate: (article: Article) => void;
   onGenerateSummary: (article: Article) => void;
   onRefresh: () => Promise<void>;
+  onOpenCached: () => Promise<void>;
+  hasCachedContent: boolean;
   isOnline: boolean;
   allTags: string[];
 }
@@ -16,6 +18,8 @@ function ArticleReader({
   onUpdate,
   onGenerateSummary,
   onRefresh,
+  onOpenCached,
+  hasCachedContent,
   isOnline,
   allTags,
 }: ArticleReaderProps) {
@@ -25,6 +29,7 @@ function ArticleReader({
   const [tagInput, setTagInput] = useState('');
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [openingCache, setOpeningCache] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -167,6 +172,18 @@ ${format(new Date(article.pubDate), 'MMMM d, yyyy')}`;
         >
           Original Page ↗
         </a>
+        {hasCachedContent && (
+          <button
+            className="reader-tab"
+            disabled={openingCache}
+            onClick={async () => {
+              setOpeningCache(true);
+              try { await onOpenCached(); } finally { setOpeningCache(false); }
+            }}
+          >
+            {openingCache ? 'Opening…' : 'Cached ↗'}
+          </button>
+        )}
       </div>
 
       <div className="reader-content">

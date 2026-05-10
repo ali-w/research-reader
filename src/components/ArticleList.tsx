@@ -54,6 +54,14 @@ function ArticleList({ articles, selectedArticle, onSelectArticle }: ArticleList
               {article.summary && (
                 <span className="has-summary" title="Has AI summary">✨</span>
               )}
+              {article.cachedContentUrl && (
+                <span
+                  className="has-cache"
+                  title={`Cached${article.cachedAt ? ' ' + format(new Date(article.cachedAt), 'MMM d') : ''}`}
+                >
+                  💾
+                </span>
+              )}
             </div>
             {visibleTags.length > 0 && (
               <div className="article-tags">

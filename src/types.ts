@@ -13,6 +13,8 @@ export interface Article {
   summary?: string;
   tags?: string[];
   contentType?: 'newsletter' | 'article' | 'video' | 'podcast' | 'webpage' | 'notebook' | 'pdf' | 'other';
+  cachedContentUrl?: string | null;
+  cachedAt?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

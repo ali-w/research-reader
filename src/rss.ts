@@ -20,6 +20,8 @@ interface ApiArticle {
   content_type?: 'newsletter' | 'webpage' | 'pdf';
   updated_at?: string;
   note_updated_at?: string;
+  cached_content_url?: string | null;
+  cached_at?: string | null;
 }
 
 export async function fetchArticlesFromEndpoint(
@@ -47,6 +49,8 @@ export async function fetchArticlesFromEndpoint(
     notes: item.notes ?? '',
     tags: item.tags ?? [],
     contentType: item.content_type ?? 'newsletter',
+    cachedContentUrl: item.cached_content_url ?? null,
+    cachedAt: item.cached_at ?? null,
     createdAt: new Date(),
     updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(),
   }));

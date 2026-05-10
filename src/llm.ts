@@ -14,6 +14,20 @@ export async function fetchSummaryFromEndpoint(
   return response.text();
 }
 
+export async function fetchCachedContentUrl(
+  articleId: string,
+  endpointTemplate: string,
+  apiKey: string
+): Promise<string> {
+  const origin = new URL(endpointTemplate).origin;
+  const res = await fetch(`${origin}/articles/${articleId}/cached-content`, {
+    headers: { 'X-Api-Key': apiKey },
+  });
+  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+  const { url } = await res.json();
+  return url;
+}
+
 export async function describeArticle(
   articleId: string,
   endpointTemplate: string,

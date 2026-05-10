@@ -147,6 +147,9 @@ function App() {
           try {
             await patchArticle(updatedArticle.id, patch, endpointUrl, apiKey);
             setSyncErrors((prev) => prev.filter((e) => e.id !== updatedArticle.id));
+            if (patch.saved === true) {
+              setTimeout(() => handleRefreshArticle(updatedArticle.id), 20_000);
+            }
           } catch {
             await upsertPendingSync(updatedArticle.id, patch);
           }
@@ -245,6 +248,13 @@ function App() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleOpenCached = async (article: Article) => {
+    const ep = localStorage.getItem('summarize_endpoint_url') || DEFAULT_SUMMARIZE_ENDPOINT;
+    const key = localStorage.getItem('api_key') || 'AliWAliW';
+    const origin = new URL(ep).origin;
+    window.open(`${origin}/articles/${article.id}/cached-content?secret=${key}`, '_blank');
   };
 
   const handleRefreshArticle = async (articleId: string) => {
@@ -505,6 +515,8 @@ function App() {
               onUpdate={handleArticleUpdate}
               onGenerateSummary={handleGenerateSummary}
               onRefresh={() => handleRefreshArticle(selectedArticle.id)}
+              onOpenCached={() => handleOpenCached(selectedArticle)}
+              hasCachedContent={!!selectedArticle.cachedContentUrl}
               isOnline={syncStatus.isOnline}
               allTags={allTags}
             />
