@@ -22,6 +22,8 @@ interface ApiArticle {
   note_updated_at?: string;
   cached_content_url?: string | null;
   cached_at?: string | null;
+  pdf_type?: 'typed' | 'handwritten' | null;
+  processing_status?: 'pending' | 'processing' | 'done' | 'error' | null;
 }
 
 export async function fetchArticlesFromEndpoint(
@@ -55,6 +57,8 @@ export async function fetchArticlesFromEndpoint(
     contentType: item.content_type ?? 'newsletter',
     cachedContentUrl: item.cached_content_url ?? null,
     cachedAt: item.cached_at ?? null,
+    pdfType: item.pdf_type ?? undefined,
+    processingStatus: item.processing_status ?? undefined,
     createdAt: new Date(),
     updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(),
   }));

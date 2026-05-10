@@ -9,10 +9,11 @@ import {
   upsertPendingSync,
   removePendingSyncs,
   saveFeed,
+  deleteArticle,
 } from './db';
 import { fetchArticlesFromEndpoint, DEFAULT_READER_ROOT } from './rss';
 import { fetchSummaryFromEndpoint, DEFAULT_SUMMARIZE_ROOT, describeArticle } from './llm';
-import { patchArticle, batchPatchArticles, SyncPatch, createArticle } from './sync';
+import { patchArticle, batchPatchArticles, SyncPatch, createArticle, deepSearch, deleteArticleRemote } from './sync';
 import ArticleList from './components/ArticleList';
 import ArticleReader from './components/ArticleReader';
 import SettingsPanel from './components/SettingsPanel';
@@ -47,6 +48,8 @@ function App() {
   const [randomOrder, setRandomOrder] = useState(false);
   const [newArticleCount, setNewArticleCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [deepSearchActive, setDeepSearchActive] = useState(false);
+  const [deepSearchResults, setDeepSearchResults] = useState<Array<{ id: number; title: string }>>([]);
 
   // Startup: pull delta then push pending
   useEffect(() => {
@@ -271,6 +274,44 @@ function App() {
     window.open(`${root}/articles/${article.id}/cached-content?secret=${key}`, '_blank');
   };
 
+  const handleOpenPdf = (article: Article) => {
+    const root = localStorage.getItem('reader_api_root') || DEFAULT_READER_ROOT;
+    const key = localStorage.getItem('api_key') || '';
+    window.open(`${root}/articles/${article.id}/pdf?secret=${key}`, '_blank');
+  };
+
+  const handlePdfUploaded = async (article: Article) => {
+    await saveArticle(article);
+    await loadArticles();
+    setSelectedArticle(article);
+    // Re-sync after 90s to pick up completed processingStatus and AI summary
+    setTimeout(() => handleDeltaSync(), 90_000); // eslint-disable-line react-hooks/exhaustive-deps
+  };
+
+  const handleDeepSearch = async (query: string) => {
+    if (!navigator.onLine || query.trim().length < 3) return;
+    try {
+      const results = await deepSearch(query.trim(), readerRoot, apiKey);
+      setDeepSearchResults(results);
+    } catch {
+      setDeepSearchResults([]);
+    }
+  };
+
+  const handleDeleteArticle = async (article: Article) => {
+    if (!window.confirm(`Delete "${article.title}"? This cannot be undone.`)) return;
+    try {
+      await deleteArticleRemote(article.id, readerRoot, apiKey);
+    } catch {
+      // If the server delete fails, abort — don't remove locally
+      alert('Failed to delete article from server. Please try again.');
+      return;
+    }
+    await deleteArticle(article.id);
+    setSelectedArticle(null);
+    await loadArticles();
+  };
+
   const handleRefreshArticle = async (articleId: string) => {
     const url = localStorage.getItem('reader_api_root') || DEFAULT_READER_ROOT;
     const key = localStorage.getItem('api_key') || '';
@@ -419,6 +460,9 @@ function App() {
           isOnline={syncStatus.isOnline}
           onClose={() => setShowClipper(false)}
           onClip={handleClip}
+          onPdfUploaded={handlePdfUploaded}
+          feedEndpoint={readerRoot}
+          apiKey={apiKey}
         />
       )}
 
@@ -473,8 +517,29 @@ function App() {
             className="search-input"
             placeholder="Search articles..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              const q = e.target.value;
+              setSearchQuery(q);
+              if (q.trim().length < 3) {
+                setDeepSearchActive(false);
+                setDeepSearchResults([]);
+              }
+            }}
           />
+          {searchQuery.trim().length >= 3 && (
+            <button
+              className={`tag-filter-chip${deepSearchActive ? ' active' : ''}`}
+              onClick={() => {
+                const next = !deepSearchActive;
+                setDeepSearchActive(next);
+                if (next) handleDeepSearch(searchQuery);
+                else setDeepSearchResults([]);
+              }}
+              title="Search full text of PDFs and cached pages"
+            >
+              Deep Search
+            </button>
+          )}
         </div>
         {allTags.length > 0 && (
           <div className="tag-filter-row">
@@ -524,6 +589,13 @@ function App() {
             })()}
             selectedArticle={selectedArticle}
             onSelectArticle={handleSelectArticle}
+            deepSearchArticles={
+              deepSearchActive && deepSearchResults.length > 0
+                ? deepSearchResults
+                    .map((r) => articles.find((a) => a.id === String(r.id)))
+                    .filter((a): a is Article => a !== undefined)
+                : undefined
+            }
           />
         </div>
 
@@ -535,7 +607,9 @@ function App() {
               onGenerateSummary={handleGenerateSummary}
               onRefresh={() => handleRefreshArticle(selectedArticle.id)}
               onOpenCached={() => handleOpenCached(selectedArticle)}
-              hasCachedContent={!!selectedArticle.cachedContentUrl}
+              onOpenPdf={() => handleOpenPdf(selectedArticle)}
+              onDelete={() => handleDeleteArticle(selectedArticle)}
+              hasCachedContent={!!selectedArticle.cachedContentUrl && selectedArticle.contentType !== 'pdf'}
               isOnline={syncStatus.isOnline}
               allTags={allTags}
             />

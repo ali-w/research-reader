@@ -41,6 +41,74 @@ export async function createArticle(
   return res.json();
 }
 
+export async function initiatePdfUpload(
+  payload: {
+    title: string;
+    pdfType: 'typed' | 'handwritten';
+    extractOcr: boolean;
+    tags?: string[];
+    summary?: string;
+  },
+  feedEndpoint: string,
+  apiKey: string
+): Promise<{ id: number; upload_url: string; gcs_uri: string }> {
+  const res = await fetch(`${feedEndpoint}/articles/upload-pdf`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+    body: JSON.stringify({
+      title: payload.title,
+      pdf_type: payload.pdfType,
+      extract_ocr: payload.extractOcr,
+      tags: payload.tags,
+      summary: payload.summary,
+      saved: true,
+    }),
+  });
+  if (!res.ok) throw new Error(`POST /articles/upload-pdf failed: ${res.status}`);
+  return res.json();
+}
+
+export async function confirmPdfUpload(
+  id: number,
+  gcsUri: string,
+  feedEndpoint: string,
+  apiKey: string
+): Promise<void> {
+  const res = await fetch(`${feedEndpoint}/articles/${id}/confirm-upload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+    body: JSON.stringify({ gcs_uri: gcsUri }),
+  });
+  if (!res.ok) throw new Error(`POST /articles/${id}/confirm-upload failed: ${res.status}`);
+}
+
+export async function deepSearch(
+  query: string,
+  feedEndpoint: string,
+  apiKey: string,
+  type: 'all' | 'pdf' | 'cached' = 'all'
+): Promise<Array<{ id: number; title: string }>> {
+  const params = new URLSearchParams({ q: query, pdfs: 'true', type });
+  const res = await fetch(`${feedEndpoint}/articles/search?${params}`, {
+    headers: { 'X-Api-Key': apiKey },
+  });
+  if (!res.ok) throw new Error(`GET /articles/search failed: ${res.status}`);
+  const data: { results: Array<{ id: number; title: string }> } = await res.json();
+  return data.results;
+}
+
+export async function deleteArticleRemote(
+  id: string,
+  feedEndpoint: string,
+  apiKey: string
+): Promise<void> {
+  const res = await fetch(`${feedEndpoint}/articles/${id}`, {
+    method: 'DELETE',
+    headers: { 'X-Api-Key': apiKey },
+  });
+  if (!res.ok && res.status !== 404) throw new Error(`DELETE /articles/${id} failed: ${res.status}`);
+}
+
 export async function batchPatchArticles(
   updates: Array<{ id: string } & SyncPatch>,
   feedEndpoint: string,

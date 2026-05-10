@@ -28,7 +28,7 @@ let dbInstance: IDBPDatabase<ResearchDB> | null = null;
 export async function getDB(): Promise<IDBPDatabase<ResearchDB>> {
   if (dbInstance) return dbInstance;
 
-  dbInstance = await openDB<ResearchDB>('research-reader-db', 2, {
+  dbInstance = await openDB<ResearchDB>('research-reader-db', 3, {
     upgrade(db, oldVersion, _newVersion, transaction) {
       if (oldVersion < 1) {
         const articleStore = db.createObjectStore('articles', { keyPath: 'id' });
@@ -41,6 +41,8 @@ export async function getDB(): Promise<IDBPDatabase<ResearchDB>> {
       if (oldVersion < 2) {
         transaction.objectStore('articles').createIndex('by-tag', 'tags', { multiEntry: true });
       }
+      // v3: pdfType and processingStatus added as optional fields — no schema change needed
+      void transaction;
     },
   });
 

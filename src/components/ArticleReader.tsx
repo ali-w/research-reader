@@ -8,6 +8,8 @@ interface ArticleReaderProps {
   onGenerateSummary: (article: Article) => void;
   onRefresh: () => Promise<void>;
   onOpenCached: () => Promise<void>;
+  onOpenPdf: () => void;
+  onDelete: () => void;
   hasCachedContent: boolean;
   isOnline: boolean;
   allTags: string[];
@@ -19,6 +21,8 @@ function ArticleReader({
   onGenerateSummary,
   onRefresh,
   onOpenCached,
+  onOpenPdf,
+  onDelete,
   hasCachedContent,
   isOnline,
   allTags,
@@ -122,6 +126,13 @@ ${format(new Date(article.pubDate), 'MMMM d, yyyy')}`;
           >
             {refreshing ? '↻ Refreshing…' : '↻ Refresh'}
           </button>
+          <button
+            className="delete-btn"
+            onClick={onDelete}
+            title="Delete article"
+          >
+            Delete
+          </button>
         </div>
       </div>
 
@@ -162,33 +173,67 @@ ${format(new Date(article.pubDate), 'MMMM d, yyyy')}`;
         </div>
       </div>
 
-      <div className="reader-tabs">
-        <button className="reader-tab active">Article</button>
-        <a
-          href={article.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="reader-tab"
-        >
-          Original Page ↗
-        </a>
-        {hasCachedContent && (
-          <button
-            className="reader-tab"
-            disabled={openingCache}
-            onClick={async () => {
-              setOpeningCache(true);
-              try { await onOpenCached(); } finally { setOpeningCache(false); }
-            }}
-          >
-            {openingCache ? 'Opening…' : 'Cached ↗'}
-          </button>
-        )}
-      </div>
-
-      <div className="reader-content">
-        <div className="content-text">{article.content}</div>
-      </div>
+      {article.contentType === 'pdf' ? (
+        <>
+          <div className="reader-tabs">
+            <button className="reader-tab active">Summary</button>
+            {article.cachedContentUrl && (
+              <button className="reader-tab" onClick={onOpenPdf}>
+                View PDF ↗
+              </button>
+            )}
+          </div>
+          <div className="reader-content">
+            {article.processingStatus === 'pending' || article.processingStatus === 'processing' ? (
+              <div className="content-text" style={{ color: 'var(--text-muted, #888)' }}>
+                {!article.summary && <p>AI processing… check back shortly.</p>}
+                {article.summary && <p>{article.summary}</p>}
+              </div>
+            ) : article.processingStatus === 'error' ? (
+              <div className="content-text">
+                {article.summary
+                  ? <p>{article.summary}</p>
+                  : <p style={{ color: 'var(--text-muted, #888)' }}>Processing failed — add a summary manually below.</p>}
+              </div>
+            ) : (
+              <div className="content-text">
+                {article.summary
+                  ? <p>{article.summary}</p>
+                  : <p style={{ color: 'var(--text-muted, #888)' }}>No summary yet — generate one below.</p>}
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="reader-tabs">
+            <button className="reader-tab active">Article</button>
+            <a
+              href={article.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="reader-tab"
+            >
+              Original Page ↗
+            </a>
+            {hasCachedContent && (
+              <button
+                className="reader-tab"
+                disabled={openingCache}
+                onClick={async () => {
+                  setOpeningCache(true);
+                  try { await onOpenCached(); } finally { setOpeningCache(false); }
+                }}
+              >
+                {openingCache ? 'Opening…' : 'Cached ↗'}
+              </button>
+            )}
+          </div>
+          <div className="reader-content">
+            <div className="content-text">{article.content}</div>
+          </div>
+        </>
+      )}
 
       <div className="tags-section">
         <h3>Tags</h3>

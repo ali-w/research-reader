@@ -15,6 +15,8 @@ export interface Article {
   contentType?: 'newsletter' | 'article' | 'video' | 'podcast' | 'webpage' | 'notebook' | 'pdf' | 'other';
   cachedContentUrl?: string | null;
   cachedAt?: string | null;
+  pdfType?: 'typed' | 'handwritten';
+  processingStatus?: 'pending' | 'processing' | 'done' | 'error';
   createdAt: Date;
   updatedAt: Date;
 }
