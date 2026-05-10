@@ -1,7 +1,9 @@
 export type SyncPatch = {
   status?: 'unread' | 'read' | 'skipped';
+  saved?: boolean;
   rating?: number | null;
   notes?: string;
+  tags?: string[];
 };
 
 function baseUrl(feedEndpoint: string): string {

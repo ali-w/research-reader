@@ -6,7 +6,7 @@ interface ResearchDB extends DBSchema {
   articles: {
     key: string;
     value: Article;
-    indexes: { 'by-status': string; 'by-date': Date; 'by-source': string };
+    indexes: { 'by-status': string; 'by-date': Date; 'by-source': string; 'by-tag': string };
   };
   feeds: {
     key: string;
@@ -28,19 +28,19 @@ let dbInstance: IDBPDatabase<ResearchDB> | null = null;
 export async function getDB(): Promise<IDBPDatabase<ResearchDB>> {
   if (dbInstance) return dbInstance;
 
-  dbInstance = await openDB<ResearchDB>('research-reader-db', 1, {
-    upgrade(db) {
-      // Articles store
-      const articleStore = db.createObjectStore('articles', { keyPath: 'id' });
-      articleStore.createIndex('by-status', 'status');
-      articleStore.createIndex('by-date', 'pubDate');
-      articleStore.createIndex('by-source', 'source');
-
-      // RSS feeds store
-      db.createObjectStore('feeds', { keyPath: 'url' });
-
-      // Pending sync operations
-      db.createObjectStore('pendingSync', { keyPath: 'id' });
+  dbInstance = await openDB<ResearchDB>('research-reader-db', 2, {
+    upgrade(db, oldVersion, _newVersion, transaction) {
+      if (oldVersion < 1) {
+        const articleStore = db.createObjectStore('articles', { keyPath: 'id' });
+        articleStore.createIndex('by-status', 'status');
+        articleStore.createIndex('by-date', 'pubDate');
+        articleStore.createIndex('by-source', 'source');
+        db.createObjectStore('feeds', { keyPath: 'url' });
+        db.createObjectStore('pendingSync', { keyPath: 'id' });
+      }
+      if (oldVersion < 2) {
+        transaction.objectStore('articles').createIndex('by-tag', 'tags', { multiEntry: true });
+      }
     },
   });
 
@@ -65,6 +65,11 @@ export async function getAllArticles(): Promise<Article[]> {
 export async function getArticlesByStatus(status: string): Promise<Article[]> {
   const db = await getDB();
   return db.getAllFromIndex('articles', 'by-status', status);
+}
+
+export async function getArticlesByTag(tag: string): Promise<Article[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('articles', 'by-tag', tag);
 }
 
 export async function getMaxArticleId(): Promise<number> {

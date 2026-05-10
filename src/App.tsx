@@ -5,7 +5,6 @@ import {
   saveArticle,
   getMaxArticleId,
   clearAllArticles,
-  getArticlesByStatus,
   getPendingSyncs,
   upsertPendingSync,
   removePendingSyncs,
@@ -22,7 +21,10 @@ import './App.css';
 function App() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  const [filter, setFilter] = useState<'all' | 'unread' | 'read' | 'skipped'>('unread');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'read' | 'skipped' | 'saved'>('unread');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [allTags, setAllTags] = useState<string[]>([]);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
     isOnline: navigator.onLine,
     pendingChanges: 0,
@@ -60,18 +62,26 @@ function App() {
 
   const loadArticles = async () => {
     try {
-      const allArticles =
-        filter === 'all'
-          ? await getAllArticles()
-          : await getArticlesByStatus(filter);
+      const all = await getAllArticles();
+
+      // Derive allTags from the complete set
+      const tagSet = new Set(all.flatMap((a) => a.tags ?? []));
+      setAllTags([...tagSet].sort());
+
+      // Status / saved filter in-memory
+      const statusFiltered: Article[] =
+        filter === 'all' ? all :
+        filter === 'saved' ? all.filter((a) => a.saved === true) :
+        all.filter((a) => a.status === filter);
+
       if (randomOrder) {
-        for (let i = allArticles.length - 1; i > 0; i--) {
+        for (let i = statusFiltered.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
-          [allArticles[i], allArticles[j]] = [allArticles[j], allArticles[i]];
+          [statusFiltered[i], statusFiltered[j]] = [statusFiltered[j], statusFiltered[i]];
         }
-        setArticles([...allArticles]);
+        setArticles([...statusFiltered]);
       } else {
-        setArticles(allArticles.sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime()));
+        setArticles(statusFiltered.sort((a: Article, b: Article) => b.pubDate.getTime() - a.pubDate.getTime()));
       }
     } catch (error) {
       console.error('Error loading articles:', error);
@@ -99,6 +109,10 @@ function App() {
         if (updatedArticle.status !== selectedArticle.status) patch.status = updatedArticle.status;
         if (updatedArticle.rating !== selectedArticle.rating) patch.rating = updatedArticle.rating ?? null;
         if (updatedArticle.notes !== selectedArticle.notes) patch.notes = updatedArticle.notes;
+        if ((updatedArticle.saved ?? false) !== (selectedArticle.saved ?? false))
+          patch.saved = updatedArticle.saved ?? false;
+        if (JSON.stringify(updatedArticle.tags) !== JSON.stringify(selectedArticle.tags))
+          patch.tags = updatedArticle.tags ?? [];
       }
 
       setSelectedArticle(updatedArticle);
@@ -284,37 +298,52 @@ function App() {
       )}
 
       <div className="filter-bar">
-        <button
-          className={filter === 'all' ? 'active' : ''}
-          onClick={() => setFilter('all')}
-        >
-          All
-        </button>
-        <button
-          className={filter === 'unread' ? 'active' : ''}
-          onClick={() => setFilter('unread')}
-        >
-          Unread
-        </button>
-        <button
-          className={filter === 'read' ? 'active' : ''}
-          onClick={() => setFilter('read')}
-        >
-          Read
-        </button>
-        <button
-          className={filter === 'skipped' ? 'active' : ''}
-          onClick={() => setFilter('skipped')}
-        >
-          Skipped
-        </button>
-        <button
-          className={`random-toggle ${randomOrder ? 'active' : ''}`}
-          onClick={() => setRandomOrder(!randomOrder)}
-          title="Shuffle article order"
-        >
-          Shuffle Order
-        </button>
+        <div className="filter-row">
+          {(['all', 'unread', 'read', 'skipped', 'saved'] as const).map((f) => (
+            <button
+              key={f}
+              className={filter === f ? 'active' : ''}
+              onClick={() => setFilter(f)}
+            >
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+          <button
+            className={`random-toggle ${randomOrder ? 'active' : ''}`}
+            onClick={() => setRandomOrder(!randomOrder)}
+            title="Shuffle article order"
+          >
+            Shuffle Order
+          </button>
+        </div>
+        <div className="search-row">
+          <input
+            type="search"
+            className="search-input"
+            placeholder="Search articles..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        {allTags.length > 0 && (
+          <div className="tag-filter-row">
+            <button
+              className={`tag-filter-chip ${selectedTag === null ? 'active' : ''}`}
+              onClick={() => setSelectedTag(null)}
+            >
+              All Tags
+            </button>
+            {allTags.map((tag) => (
+              <button
+                key={tag}
+                className={`tag-filter-chip ${selectedTag === tag ? 'active' : ''}`}
+                onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {isLoading && (
@@ -326,7 +355,21 @@ function App() {
       <div className="main-content">
         <div className="article-list-panel">
           <ArticleList
-            articles={articles}
+            articles={(() => {
+              let list = articles;
+              if (selectedTag) list = list.filter((a) => a.tags?.includes(selectedTag));
+              if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase();
+                list = list.filter(
+                  (a) =>
+                    a.title.toLowerCase().includes(q) ||
+                    a.content.toLowerCase().includes(q) ||
+                    a.notes.toLowerCase().includes(q) ||
+                    (a.summary ?? '').toLowerCase().includes(q)
+                );
+              }
+              return list;
+            })()}
             selectedArticle={selectedArticle}
             onSelectArticle={handleSelectArticle}
           />
@@ -339,6 +382,7 @@ function App() {
               onUpdate={handleArticleUpdate}
               onGenerateSummary={handleGenerateSummary}
               isOnline={syncStatus.isOnline}
+              allTags={allTags}
             />
           ) : (
             <div className="empty-state">

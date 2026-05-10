@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Article } from '../types';
 import { format } from 'date-fns';
 
@@ -7,6 +7,7 @@ interface ArticleReaderProps {
   onUpdate: (article: Article) => void;
   onGenerateSummary: (article: Article) => void;
   isOnline: boolean;
+  allTags: string[];
 }
 
 function ArticleReader({
@@ -14,10 +15,14 @@ function ArticleReader({
   onUpdate,
   onGenerateSummary,
   isOnline,
+  allTags,
 }: ArticleReaderProps) {
   const [notes, setNotes] = useState(article.notes);
   const [showNotes, setShowNotes] = useState(true);
   const [showSummary, setShowSummary] = useState(false);
+  const [tagInput, setTagInput] = useState('');
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const tagInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setNotes(article.notes);
@@ -25,7 +30,39 @@ function ArticleReader({
 
   useEffect(() => {
     setShowSummary(false);
+    setTagInput('');
   }, [article.id]);
+
+  const currentTags = article.tags ?? [];
+
+  const tagSuggestions = tagInput.trim()
+    ? allTags.filter(
+        (t) =>
+          t.toLowerCase().includes(tagInput.toLowerCase()) &&
+          !currentTags.includes(t)
+      )
+    : allTags.filter((t) => !currentTags.includes(t));
+
+  const addTag = (tag: string) => {
+    const trimmed = tag.trim();
+    if (!trimmed || currentTags.includes(trimmed)) return;
+    onUpdate({ ...article, tags: [...currentTags, trimmed], updatedAt: new Date() });
+    setTagInput('');
+    setShowTagSuggestions(false);
+  };
+
+  const removeTag = (tag: string) => {
+    onUpdate({ ...article, tags: currentTags.filter((t) => t !== tag), updatedAt: new Date() });
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (e.key === 'Escape') {
+      setShowTagSuggestions(false);
+    }
+  };
 
   const handleStatusChange = (status: Article['status']) => {
     onUpdate({ ...article, status, updatedAt: new Date() });
@@ -84,6 +121,12 @@ ${format(new Date(article.pubDate), 'MMMM d, yyyy')}`;
           >
             Skipped
           </button>
+          <button
+            className={`saved-btn ${article.saved ? 'active' : ''}`}
+            onClick={() => onUpdate({ ...article, saved: !article.saved, updatedAt: new Date() })}
+          >
+            {article.saved ? 'Saved' : 'Save'}
+          </button>
         </div>
 
         <div className="action-group">
@@ -114,6 +157,45 @@ ${format(new Date(article.pubDate), 'MMMM d, yyyy')}`;
 
       <div className="reader-content">
         <div className="content-text">{article.content}</div>
+      </div>
+
+      <div className="tags-section">
+        <h3>Tags</h3>
+        <div className="tag-chips">
+          {currentTags.map((tag) => (
+            <span key={tag} className="tag-chip">
+              {tag}
+              <button className="tag-remove" onClick={() => removeTag(tag)} aria-label={`Remove tag ${tag}`}>
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="tag-input-wrapper">
+          <input
+            ref={tagInputRef}
+            type="text"
+            className="tag-input"
+            placeholder="Add a tag..."
+            value={tagInput}
+            onChange={(e) => {
+              setTagInput(e.target.value);
+              setShowTagSuggestions(true);
+            }}
+            onFocus={() => setShowTagSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowTagSuggestions(false), 150)}
+            onKeyDown={handleTagKeyDown}
+          />
+          {showTagSuggestions && tagSuggestions.length > 0 && (
+            <ul className="tag-suggestions">
+              {tagSuggestions.map((tag) => (
+                <li key={tag} onMouseDown={() => addTag(tag)}>
+                  {tag}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       <div className="notes-section">

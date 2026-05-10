@@ -13,8 +13,11 @@ interface ApiArticle {
   newsletter_name: string;
   received_at: string;
   status?: 'unread' | 'read' | 'skipped';
+  saved?: boolean;
   rating?: number | null;
   notes?: string;
+  tags?: string[];
+  content_type?: 'newsletter' | 'webpage' | 'pdf';
   updated_at?: string;
   note_updated_at?: string;
 }
@@ -39,8 +42,11 @@ export async function fetchArticlesFromEndpoint(
     source: item.newsletter_name,
     newsletterName: item.newsletter_name,
     status: item.status ?? 'unread',
+    saved: item.saved ?? false,
     rating: (item.rating ?? undefined) as Article['rating'],
     notes: item.notes ?? '',
+    tags: item.tags ?? [],
+    contentType: item.content_type ?? 'newsletter',
     createdAt: new Date(),
     updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(),
   }));

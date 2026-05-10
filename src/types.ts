@@ -7,9 +7,12 @@ export interface Article {
   source: string;
   newsletterName?: string;
   status: 'unread' | 'read' | 'skipped';
+  saved?: boolean;
   rating?: 1 | 2 | 3 | 4 | 5;
   notes: string;
   summary?: string;
+  tags?: string[];
+  contentType?: 'newsletter' | 'webpage' | 'pdf';
   createdAt: Date;
   updatedAt: Date;
 }
