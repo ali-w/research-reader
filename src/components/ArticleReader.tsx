@@ -186,19 +186,19 @@ ${format(new Date(article.pubDate), 'MMMM d, yyyy')}`;
           <div className="reader-content">
             {article.processingStatus === 'pending' || article.processingStatus === 'processing' ? (
               <div className="content-text" style={{ color: 'var(--text-muted, #888)' }}>
-                {!article.summary && <p>AI processing… check back shortly.</p>}
-                {article.summary && <p>{article.summary}</p>}
+                {!article.content && <p>AI processing… check back shortly.</p>}
+                {article.content && <p>{article.content}</p>}
               </div>
             ) : article.processingStatus === 'error' ? (
               <div className="content-text">
-                {article.summary
-                  ? <p>{article.summary}</p>
+                {article.content
+                  ? <p>{article.content}</p>
                   : <p style={{ color: 'var(--text-muted, #888)' }}>Processing failed — add a summary manually below.</p>}
               </div>
             ) : (
               <div className="content-text">
-                {article.summary
-                  ? <p>{article.summary}</p>
+                {article.content
+                  ? <p>{article.content}</p>
                   : <p style={{ color: 'var(--text-muted, #888)' }}>No summary yet — generate one below.</p>}
               </div>
             )}
