@@ -224,9 +224,6 @@ body {
   display: none;
 }
 
-.filter-expandable.collapsed {
-  display: none;
-}
 
 .random-toggle.active {
   background: var(--accent-color) !important;
