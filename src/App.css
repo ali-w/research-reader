@@ -999,7 +999,7 @@ body {
 
   .article-list-panel {
     width: 100%;
-    max-height: 40vh;
+    max-height: 30vh;
     border-right: none;
     border-bottom: 1px solid var(--border-color);
   }
