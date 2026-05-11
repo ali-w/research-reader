@@ -1,5 +1,5 @@
 export type SyncPatch = {
-  status?: 'unread' | 'read' | 'skipped';
+  status?: 'unread' | 'read' | 'skipped' | 'later';
   saved?: boolean;
   rating?: number | null;
   notes?: string;

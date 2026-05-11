@@ -6,7 +6,7 @@ export interface Article {
   pubDate: Date;
   source: string;
   newsletterName?: string;
-  status: 'unread' | 'read' | 'skipped';
+  status: 'unread' | 'read' | 'skipped' | 'later';
   saved?: boolean;
   rating?: 1 | 2 | 3 | 4 | 5;
   notes: string;

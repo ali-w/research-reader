@@ -23,7 +23,7 @@ import './App.css';
 function App() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  const [filter, setFilter] = useState<'all' | 'unread' | 'read' | 'skipped' | 'saved'>('unread');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'read' | 'skipped' | 'later' | 'saved'>('unread');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [allTags, setAllTags] = useState<string[]>([]);
@@ -43,9 +43,6 @@ function App() {
   const [apiKey, setApiKey] = useState(
     localStorage.getItem('api_key') || ''
   );
-  const [defaultTags, setDefaultTags] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('default_tags') || '[]'); } catch { return []; }
-  });
   const [isLoading, setIsLoading] = useState(false);
   const [syncErrors, setSyncErrors] = useState<Array<{ id: string; error: string }>>([]);
   const [randomOrder, setRandomOrder] = useState(false);
@@ -489,7 +486,7 @@ function App() {
 
       <div className="filter-bar">
         <div className="filter-row">
-          {(['all', 'unread', 'read', 'skipped', 'saved'] as const).map((f) => (
+          {(['all', 'unread', 'read', 'later', 'skipped', 'saved'] as const).map((f) => (
             <button
               key={f}
               className={filter === f ? 'active' : ''}

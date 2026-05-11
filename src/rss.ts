@@ -12,7 +12,7 @@ interface ApiArticle {
   article_created_at: string;
   newsletter_name: string;
   received_at: string;
-  status?: 'unread' | 'read' | 'skipped';
+  status?: 'unread' | 'read' | 'skipped' | 'later';
   saved?: boolean;
   rating?: number | null;
   notes?: string;
