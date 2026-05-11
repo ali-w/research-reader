@@ -594,6 +594,7 @@ function App() {
             })()}
             selectedArticle={selectedArticle}
             onSelectArticle={handleSelectArticle}
+            onArticleUpdate={handleArticleUpdate}
             deepSearchArticles={
               deepSearchActive && deepSearchResults.length > 0
                 ? deepSearchResults
