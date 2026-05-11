@@ -23,7 +23,7 @@ import './App.css';
 function App() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  const [filter, setFilter] = useState<'all' | 'unread' | 'read' | 'skipped' | 'later' | 'saved'>('unread');
+  const [activeFilters, setActiveFilters] = useState<Set<string>>(() => new Set(['unread']));
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [allTags, setAllTags] = useState<string[]>([]);
@@ -71,7 +71,7 @@ function App() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [filter, randomOrder]);
+  }, [[...activeFilters].sort().join(','), randomOrder]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadArticles = async () => {
     try {
@@ -81,11 +81,12 @@ function App() {
       const tagSet = new Set(all.flatMap((a) => a.tags ?? []));
       setAllTags([...tagSet].sort());
 
-      // Status / saved filter in-memory
-      const statusFiltered: Article[] =
-        filter === 'all' ? all :
-        filter === 'saved' ? all.filter((a) => a.saved === true) :
-        all.filter((a) => a.status === filter);
+      // Status / saved filter in-memory — empty set means show all
+      const statusFiltered: Article[] = activeFilters.size === 0 ? all : all.filter((a) => {
+        if (activeFilters.has('saved') && a.saved) return true;
+        if (activeFilters.has(a.status)) return true;
+        return false;
+      });
 
       if (randomOrder) {
         for (let i = statusFiltered.length - 1; i > 0; i--) {
@@ -486,11 +487,15 @@ function App() {
 
       <div className="filter-bar">
         <div className="filter-row">
-          {(['all', 'unread', 'read', 'later', 'skipped', 'saved'] as const).map((f) => (
+          {(['unread', 'later', 'read', 'saved', 'skipped'] as const).map((f) => (
             <button
               key={f}
-              className={filter === f ? 'active' : ''}
-              onClick={() => setFilter(f)}
+              className={activeFilters.has(f) ? 'active' : ''}
+              onClick={() => setActiveFilters((prev) => {
+                const next = new Set(prev);
+                next.has(f) ? next.delete(f) : next.add(f);
+                return next;
+              })}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
