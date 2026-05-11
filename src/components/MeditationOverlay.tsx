@@ -30,6 +30,7 @@ function playBell() {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 3);
     osc.start();
     osc.stop(ctx.currentTime + 3);
+    osc.onended = () => ctx.close();
   } catch {
     // AudioContext not available
   }
