@@ -95,7 +95,7 @@ function App() {
         }
         setArticles([...statusFiltered]);
       } else {
-        setArticles(statusFiltered.sort((a: Article, b: Article) => b.pubDate.getTime() - a.pubDate.getTime()));
+        setArticles(statusFiltered.sort((a: Article, b: Article) => parseInt(b.id, 10) - parseInt(a.id, 10)));
       }
     } catch (error) {
       console.error('Error loading articles:', error);
