@@ -247,30 +247,40 @@ ${format(new Date(article.pubDate), 'MMMM d, yyyy')}`;
             </span>
           ))}
         </div>
-        <div className="tag-input-wrapper">
-          <input
-            ref={tagInputRef}
-            type="text"
-            className="tag-input"
-            placeholder="Add a tag..."
-            value={tagInput}
-            onChange={(e) => {
-              setTagInput(e.target.value);
-              setShowTagSuggestions(true);
-            }}
-            onFocus={() => setShowTagSuggestions(true)}
-            onBlur={() => setTimeout(() => setShowTagSuggestions(false), 150)}
-            onKeyDown={handleTagKeyDown}
-          />
-          {showTagSuggestions && tagSuggestions.length > 0 && (
-            <ul className="tag-suggestions">
-              {tagSuggestions.map((tag) => (
-                <li key={tag} onMouseDown={() => addTag(tag)}>
-                  {tag}
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="tag-input-row">
+          <div className="tag-input-wrapper">
+            <input
+              ref={tagInputRef}
+              type="text"
+              className="tag-input"
+              placeholder="Add a tag..."
+              value={tagInput}
+              onChange={(e) => {
+                setTagInput(e.target.value);
+                setShowTagSuggestions(true);
+              }}
+              onFocus={() => setShowTagSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowTagSuggestions(false), 150)}
+              onKeyDown={handleTagKeyDown}
+            />
+            {showTagSuggestions && tagSuggestions.length > 0 && (
+              <ul className="tag-suggestions">
+                {tagSuggestions.map((tag) => (
+                  <li key={tag} onMouseDown={() => addTag(tag)}>
+                    {tag}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <button
+            className="tag-add-btn"
+            onClick={() => addTag(tagInput)}
+            disabled={!tagInput.trim()}
+            aria-label="Add tag"
+          >
+            Add
+          </button>
         </div>
       </div>
 

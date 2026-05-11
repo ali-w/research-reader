@@ -305,11 +305,40 @@ body {
   color: var(--text-primary);
 }
 
+.tag-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 340px;
+}
+
+.tag-add-btn {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tag-add-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tag-add-btn:not(:disabled):hover {
+  background: var(--accent-color);
+  color: var(--bg-primary);
+  border-color: var(--accent-color);
+}
+
 .tag-input-wrapper {
   position: relative;
-  display: inline-block;
-  width: 100%;
-  max-width: 300px;
+  flex: 1;
+  min-width: 0;
 }
 
 .tag-input {

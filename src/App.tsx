@@ -43,6 +43,9 @@ function App() {
   const [apiKey, setApiKey] = useState(
     localStorage.getItem('api_key') || ''
   );
+  const [defaultTags, setDefaultTags] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('default_tags') || '[]'); } catch { return []; }
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [syncErrors, setSyncErrors] = useState<Array<{ id: string; error: string }>>([]);
   const [randomOrder, setRandomOrder] = useState(false);

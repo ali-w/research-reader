@@ -272,25 +272,35 @@ function WebClipper({ onClose, onClip, onPdfUploaded, allTags, isOnline, feedEnd
                     </span>
                   ))}
                 </div>
-                <div className="tag-input-wrapper">
-                  <input
-                    ref={tagInputRef}
-                    type="text"
-                    className="tag-input"
-                    placeholder="Add a tag..."
-                    value={tagInput}
-                    onChange={(e) => { setTagInput(e.target.value); setShowTagSuggestions(true); }}
-                    onFocus={() => setShowTagSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowTagSuggestions(false), 150)}
-                    onKeyDown={handleTagKeyDown}
-                  />
-                  {showTagSuggestions && webTagSuggestions.length > 0 && (
-                    <ul className="tag-suggestions">
-                      {webTagSuggestions.map((tag) => (
-                        <li key={tag} onMouseDown={() => addTag(tag)}>{tag}</li>
-                      ))}
-                    </ul>
-                  )}
+                <div className="tag-input-row">
+                  <div className="tag-input-wrapper">
+                    <input
+                      ref={tagInputRef}
+                      type="text"
+                      className="tag-input"
+                      placeholder="Add a tag..."
+                      value={tagInput}
+                      onChange={(e) => { setTagInput(e.target.value); setShowTagSuggestions(true); }}
+                      onFocus={() => setShowTagSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowTagSuggestions(false), 150)}
+                      onKeyDown={handleTagKeyDown}
+                    />
+                    {showTagSuggestions && webTagSuggestions.length > 0 && (
+                      <ul className="tag-suggestions">
+                        {webTagSuggestions.map((tag) => (
+                          <li key={tag} onMouseDown={() => addTag(tag)}>{tag}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <button
+                    className="tag-add-btn"
+                    onClick={() => addTag(tagInput)}
+                    disabled={!tagInput.trim()}
+                    aria-label="Add tag"
+                  >
+                    Add
+                  </button>
                 </div>
               </div>
 
@@ -395,25 +405,35 @@ function WebClipper({ onClose, onClip, onPdfUploaded, allTags, isOnline, feedEnd
                     </span>
                   ))}
                 </div>
-                <div className="tag-input-wrapper">
-                  <input
-                    ref={pdfTagInputRef}
-                    type="text"
-                    className="tag-input"
-                    placeholder="Add a tag..."
-                    value={pdfTagInput}
-                    onChange={(e) => { setPdfTagInput(e.target.value); setShowPdfTagSuggestions(true); }}
-                    onFocus={() => setShowPdfTagSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowPdfTagSuggestions(false), 150)}
-                    onKeyDown={handlePdfTagKeyDown}
-                  />
-                  {showPdfTagSuggestions && pdfTagSuggestions.length > 0 && (
-                    <ul className="tag-suggestions">
-                      {pdfTagSuggestions.map((tag) => (
-                        <li key={tag} onMouseDown={() => addPdfTag(tag)}>{tag}</li>
-                      ))}
-                    </ul>
-                  )}
+                <div className="tag-input-row">
+                  <div className="tag-input-wrapper">
+                    <input
+                      ref={pdfTagInputRef}
+                      type="text"
+                      className="tag-input"
+                      placeholder="Add a tag..."
+                      value={pdfTagInput}
+                      onChange={(e) => { setPdfTagInput(e.target.value); setShowPdfTagSuggestions(true); }}
+                      onFocus={() => setShowPdfTagSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowPdfTagSuggestions(false), 150)}
+                      onKeyDown={handlePdfTagKeyDown}
+                    />
+                    {showPdfTagSuggestions && pdfTagSuggestions.length > 0 && (
+                      <ul className="tag-suggestions">
+                        {pdfTagSuggestions.map((tag) => (
+                          <li key={tag} onMouseDown={() => addPdfTag(tag)}>{tag}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <button
+                    className="tag-add-btn"
+                    onClick={() => addPdfTag(pdfTagInput)}
+                    disabled={!pdfTagInput.trim()}
+                    aria-label="Add tag"
+                  >
+                    Add
+                  </button>
                 </div>
               </div>
 
