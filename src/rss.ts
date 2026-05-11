@@ -26,6 +26,11 @@ interface ApiArticle {
   processing_status?: 'pending' | 'processing' | 'done' | 'error' | null;
 }
 
+function extractSourceName(raw: string): string {
+  const match = raw.match(/\bdh=([^=@\s]+)/);
+  return match ? match[1] : raw;
+}
+
 export async function fetchArticlesFromEndpoint(
   endpointUrl: string = DEFAULT_READER_ROOT,
   apiKey: string = '',
@@ -47,7 +52,7 @@ export async function fetchArticlesFromEndpoint(
     link: item.url,
     content: item.summary,
     pubDate: new Date(item.received_at),
-    source: item.newsletter_name,
+    source: extractSourceName(item.newsletter_name),
     newsletterName: item.newsletter_name,
     status: item.status ?? 'unread',
     saved: item.saved ?? false,
