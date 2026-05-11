@@ -4,9 +4,11 @@ interface SettingsPanelProps {
   readerRoot: string;
   summarizeRoot: string;
   apiKey: string;
+  meditationMinutes: number;
   onSaveEndpoint: (url: string) => void;
   onSaveSummarizeEndpoint: (url: string) => void;
   onSaveApiKey: (key: string) => void;
+  onSaveMeditationMinutes: (minutes: number) => void;
   onFetchArticles: (url: string) => void;
   onClearAndRefresh: (url: string) => void;
   onClose: () => void;
@@ -17,9 +19,11 @@ function SettingsPanel({
   readerRoot,
   summarizeRoot,
   apiKey,
+  meditationMinutes,
   onSaveEndpoint,
   onSaveSummarizeEndpoint,
   onSaveApiKey,
+  onSaveMeditationMinutes,
   onFetchArticles,
   onClearAndRefresh,
   onClose,
@@ -28,6 +32,7 @@ function SettingsPanel({
   const [endpointInput, setEndpointInput] = useState(readerRoot);
   const [summarizeInput, setSummarizeInput] = useState(summarizeRoot);
   const [apiKeyInput, setApiKeyInput] = useState(apiKey);
+  const [meditationInput, setMeditationInput] = useState(meditationMinutes);
 
   const handleSaveEndpoint = () => {
     onSaveEndpoint(endpointInput);
@@ -123,6 +128,23 @@ function SettingsPanel({
             />
             <button className="save-btn" onClick={handleSaveApiKey}>
               Save Key
+            </button>
+          </section>
+
+          <section className="settings-section">
+            <h3>Meditation Duration</h3>
+            <p className="hint">Length of each meditation session in minutes.</p>
+            <input
+              type="number"
+              min={1}
+              max={120}
+              value={meditationInput}
+              onChange={(e) => setMeditationInput(Math.max(1, parseInt(e.target.value) || 1))}
+              className="rss-url-input"
+              style={{ width: '80px' }}
+            />
+            <button className="save-btn" onClick={() => onSaveMeditationMinutes(meditationInput)}>
+              Save
             </button>
           </section>
 

@@ -18,6 +18,7 @@ import ArticleList from './components/ArticleList';
 import ArticleReader from './components/ArticleReader';
 import SettingsPanel from './components/SettingsPanel';
 import WebClipper from './components/WebClipper';
+import MeditationOverlay from './components/MeditationOverlay';
 import './App.css';
 
 function App() {
@@ -32,6 +33,11 @@ function App() {
     pendingChanges: 0,
   });
   const [showSettings, setShowSettings] = useState(false);
+  const [showMeditation, setShowMeditation] = useState(false);
+  const [meditationMinutes, setMeditationMinutes] = useState(() => {
+    const stored = localStorage.getItem('meditation_duration_minutes');
+    return stored ? parseInt(stored, 10) : 10;
+  });
   const [showClipper, setShowClipper] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [readerRoot, setReaderRoot] = useState(
@@ -446,6 +452,13 @@ function App() {
             + Clip
           </button>
           <button
+            className="meditation-btn"
+            onClick={() => setShowMeditation(true)}
+            aria-label="Meditate"
+          >
+            🧠
+          </button>
+          <button
             className="settings-btn"
             onClick={() => setShowSettings(!showSettings)}
             aria-label="Settings"
@@ -467,17 +480,26 @@ function App() {
         />
       )}
 
+      {showMeditation && (
+        <MeditationOverlay duration={meditationMinutes * 60} onClose={() => setShowMeditation(false)} />
+      )}
+
       {showSettings && (
         <SettingsPanel
           readerRoot={readerRoot}
           summarizeRoot={summarizeRoot}
           apiKey={apiKey}
+          meditationMinutes={meditationMinutes}
           onSaveEndpoint={handleSaveEndpoint}
           onSaveSummarizeEndpoint={(url) => {
             localStorage.setItem('summarize_api_root', url);
             setSummarizeRoot(url);
           }}
           onSaveApiKey={handleSaveApiKey}
+          onSaveMeditationMinutes={(m) => {
+            localStorage.setItem('meditation_duration_minutes', String(m));
+            setMeditationMinutes(m);
+          }}
           onFetchArticles={handleFetchArticles}
           onClearAndRefresh={handleClearAndRefresh}
           onClose={() => setShowSettings(false)}

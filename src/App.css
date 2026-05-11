@@ -122,6 +122,90 @@ body {
   background: var(--bg-secondary);
 }
 
+.meditation-btn {
+  font-size: 20px;
+  background: none;
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.meditation-btn:hover {
+  background: var(--bg-secondary);
+}
+
+.meditation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+.meditation-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: #fff;
+}
+
+.meditation-timer {
+  font-size: 80px;
+  font-weight: 200;
+  letter-spacing: 4px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.meditation-subtitle {
+  font-size: 18px;
+  opacity: 0.6;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.meditation-controls {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.meditation-toggle-btn {
+  font-size: 24px;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.meditation-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.meditation-end-btn {
+  font-size: 14px;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.meditation-end-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
 .clip-btn {
   font-size: 14px;
   font-weight: 600;
@@ -1106,6 +1190,15 @@ body {
   .settings-btn {
     font-size: 20px;
     padding: 6px 8px;
+  }
+
+  .meditation-btn {
+    font-size: 17px;
+    padding: 6px 8px;
+  }
+
+  .meditation-timer {
+    font-size: 56px;
   }
 
   .filter-bar {
