@@ -38,7 +38,7 @@ export async function fetchArticlesFromEndpoint(
 ): Promise<Article[]> {
   const qs = updatedSince
     ? `?limit=200&updated_since=${encodeURIComponent(updatedSince)}`
-    : '?limit=200';
+    : '?limit=5000';
   const response = await fetch(`${endpointUrl}/articles${qs}`, {
     headers: { 'X-Api-Key': apiKey },
   });

@@ -241,7 +241,7 @@ function App() {
     try {
       await clearAllArticles();
       setSelectedArticle(null);
-      const fetched = await fetchArticlesFromEndpoint(url, apiKey);
+      const fetched = await fetchArticlesFromEndpoint(url, apiKey); // fullFetch
       for (const article of fetched) {
         await saveArticle(article);
       }
