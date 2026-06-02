@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Article, SyncStatus } from './types';
 import {
   getAllArticles,
@@ -54,6 +54,8 @@ function App() {
   const [randomOrder, setRandomOrder] = useState(false);
   const [newArticleCount, setNewArticleCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
+  const articleListRef = useRef<HTMLDivElement>(null);
+  const loadGenRef = useRef(0);
   const [deepSearchActive, setDeepSearchActive] = useState(false);
   const [deepSearchResults, setDeepSearchResults] = useState<Array<{ id: number; title: string }>>([]);
 
@@ -69,19 +71,38 @@ function App() {
 
     const handleOnline = () => { updateSyncStatus(); handleDeltaSync(); };
     const handleOffline = () => updateSyncStatus();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine) handleDeltaSync();
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [[...activeFilters].sort().join(','), randomOrder]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Scroll the list panel to the top so newly-synced articles (always prepended) are visible.
+  useEffect(() => {
+    if (newArticleCount > 0) {
+      articleListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [newArticleCount]);
+
   const loadArticles = async () => {
+    // Guard against a concurrent loadArticles overwriting a newer result with stale data.
+    // On mount, Effect 2 starts a read (gen=1) before handleDeltaSync saves new articles.
+    // handleDeltaSync then calls loadArticles (gen=2) with fresh data. If gen=2 resolves
+    // first and gen=1 resolves later, gen=1 would silently overwrite the correct result.
+    // Checking gen !== loadGenRef.current after the async gap discards any stale reader.
+    const gen = ++loadGenRef.current;
     try {
       const all = await getAllArticles();
+      if (gen !== loadGenRef.current) return;
 
       // Derive allTags from the complete set
       const tagSet = new Set(all.flatMap((a) => a.tags ?? []));
@@ -322,7 +343,9 @@ function App() {
   const handleRefreshArticle = async (articleId: string) => {
     const url = localStorage.getItem('reader_api_root') || DEFAULT_READER_ROOT;
     const key = localStorage.getItem('api_key') || '';
-    const fetched = await fetchArticlesFromEndpoint(url, key);
+    // Use delta sync so we fetch only recently-changed articles, not all 5000
+    const lastSync = localStorage.getItem('last_sync_at') ?? undefined;
+    const fetched = await fetchArticlesFromEndpoint(url, key, lastSync);
     const updated = fetched.find((a) => a.id === articleId);
     if (!updated) return;
     await saveArticle(updated);
@@ -426,7 +449,7 @@ function App() {
               ? syncErrors.map((e) => `Article ${e.id}: ${e.error}`).join('\n')
               : undefined;
             const handleStatusClick =
-              newArticleCount > 0 ? () => setNewArticleCount(0) :
+              newArticleCount > 0 ? () => { setNewArticleCount(0); articleListRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); } :
               dotState === 'online' ? handleDeltaSync :
               undefined;
             return (
@@ -597,7 +620,7 @@ function App() {
       )}
 
       <div className="main-content">
-        <div className="article-list-panel">
+        <div className="article-list-panel" ref={articleListRef}>
           <ArticleList
             articles={(() => {
               let list = articles;
