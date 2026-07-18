@@ -126,6 +126,9 @@ function ArticleItem({
             <span className="has-processing" title="AI processing">⏳</span>
           )}
         </div>
+        {article.senderEmail && (
+          <div className="article-sender">From: {article.senderEmail}</div>
+        )}
         {visibleTags.length > 0 && (
           <div className="article-tags">
             {visibleTags.map((tag) => (

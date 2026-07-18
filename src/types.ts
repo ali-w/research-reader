@@ -6,6 +6,7 @@ export interface Article {
   pubDate: Date;
   source: string;
   newsletterName?: string;
+  senderEmail?: string;
   status: 'unread' | 'read' | 'skipped' | 'later';
   saved?: boolean;
   rating?: 1 | 2 | 3 | 4 | 5;
@@ -19,6 +20,13 @@ export interface Article {
   processingStatus?: 'pending' | 'processing' | 'done' | 'error';
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface EmailTagMapping {
+  id: number;
+  email: string;
+  tag: string;
+  createdAt: string;
 }
 
 export interface RSSFeed {

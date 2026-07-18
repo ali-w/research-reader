@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import EmailTagMappings from './EmailTagMappings';
 
 interface SettingsPanelProps {
   readerRoot: string;
   summarizeRoot: string;
   apiKey: string;
   meditationMinutes: number;
+  allSenderEmails: string[];
   onSaveEndpoint: (url: string) => void;
   onSaveSummarizeEndpoint: (url: string) => void;
   onSaveApiKey: (key: string) => void;
@@ -20,6 +22,7 @@ function SettingsPanel({
   summarizeRoot,
   apiKey,
   meditationMinutes,
+  allSenderEmails,
   onSaveEndpoint,
   onSaveSummarizeEndpoint,
   onSaveApiKey,
@@ -129,6 +132,19 @@ function SettingsPanel({
             <button className="save-btn" onClick={handleSaveApiKey}>
               Save Key
             </button>
+          </section>
+
+          <section className="settings-section">
+            <h3>Email Tag Mappings</h3>
+            <p className="hint">
+              Newsletters from a mapped sender are automatically tagged when received.
+            </p>
+            <EmailTagMappings
+              feedEndpoint={readerRoot}
+              apiKey={apiKey}
+              allSenderEmails={allSenderEmails}
+              isOnline={isOnline}
+            />
           </section>
 
           <section className="settings-section">

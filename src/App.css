@@ -343,6 +343,12 @@ body {
   padding: 2px 4px;
 }
 
+.article-sender {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
 /* Reader tag editor */
 .tags-section {
   margin-bottom: 24px;
@@ -1002,6 +1008,81 @@ body {
 .fetch-btn.disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+/* Email tag mappings */
+.mapping-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mapping-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.mapping-table th {
+  text-align: left;
+  padding: 6px 8px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mapping-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.mapping-actions,
+.mapping-confirm-delete {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mapping-btn {
+  padding: 4px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mapping-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+.mapping-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mapping-btn-danger {
+  color: var(--error-color);
+  border-color: var(--error-color);
+}
+
+.mapping-form {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.mapping-form .rss-url-input {
+  flex: 1;
+  min-width: 180px;
+  margin-bottom: 0;
+}
+
+.mapping-form .button-row {
+  margin-top: 0;
 }
 
 .clear-refresh-btn {

@@ -11,6 +11,7 @@ interface ApiArticle {
   url: string;
   article_created_at: string;
   newsletter_name: string;
+  sender_email?: string | null;
   received_at: string;
   status?: 'unread' | 'read' | 'skipped' | 'later';
   saved?: boolean;
@@ -54,6 +55,7 @@ export async function fetchArticlesFromEndpoint(
     pubDate: new Date(item.received_at),
     source: extractSourceName(item.newsletter_name),
     newsletterName: item.newsletter_name,
+    senderEmail: item.sender_email ?? undefined,
     status: item.status ?? 'unread',
     saved: item.saved ?? false,
     rating: (item.rating ?? undefined) as Article['rating'],

@@ -28,6 +28,7 @@ function App() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [allTags, setAllTags] = useState<string[]>([]);
+  const [allSenderEmails, setAllSenderEmails] = useState<string[]>([]);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
     isOnline: navigator.onLine,
     pendingChanges: 0,
@@ -107,6 +108,9 @@ function App() {
       // Derive allTags from the complete set
       const tagSet = new Set(all.flatMap((a) => a.tags ?? []));
       setAllTags([...tagSet].sort());
+
+      const senderEmailSet = new Set(all.flatMap((a) => (a.senderEmail ? [a.senderEmail] : [])));
+      setAllSenderEmails([...senderEmailSet].sort());
 
       // Status / saved filter in-memory — empty set means show all
       const statusFiltered: Article[] = activeFilters.size === 0 ? all : all.filter((a) => {
@@ -513,6 +517,7 @@ function App() {
           summarizeRoot={summarizeRoot}
           apiKey={apiKey}
           meditationMinutes={meditationMinutes}
+          allSenderEmails={allSenderEmails}
           onSaveEndpoint={handleSaveEndpoint}
           onSaveSummarizeEndpoint={(url) => {
             localStorage.setItem('summarize_api_root', url);
