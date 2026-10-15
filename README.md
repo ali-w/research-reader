@@ -66,6 +66,8 @@ Open the ⚙ settings panel in the app header. Three values are stored in `local
 | Reader API Root | `reader_api_root` | Root URL of the Reader API, e.g. `https://reader-api-example.run.app` |
 | Summarize API Root | `summarize_api_root` | Root URL of the Summarize API, e.g. `https://summarize-example.run.app` |
 | API Key | `api_key` | Shared key sent as `X-Api-Key` on all API requests, and as `?secret=` for cached-content |
+| VAPID Public Key | `push_vapid_public_key` | Public VAPID key for Web Push subscription on Android |
+| Curation Preferences | `topic_curation_preferences` | JSON object containing `interested` and `excluded` topic strings for Gemini curation |
 
 The app also stores `last_sync_at` (ISO timestamp) in `localStorage` to track the last successful delta sync.
 
@@ -212,6 +214,42 @@ Generate an AI description and suggest a tag. Called after a Web Clipper save wh
 Serve a server-cached HTML copy of the article page. The frontend opens this URL directly in a new browser tab — it is not fetched via JavaScript. Authentication is via the `secret` query parameter (same value as the API key).
 
 The Reader API populates `cached_content_url` and `cached_at` on an article asynchronously after it is marked `saved: true` (typically within 5–20 seconds). The frontend polls once ~20 s after a save to pick up the cached content indicator.
+
+---
+
+### Push Notifications & Curation API
+
+Used by the WebAPK / Android PWA for device registration and Gemini curation.
+
+#### `POST /push/subscribe`
+Register a device's push subscription.
+```jsonc
+{
+  "subscription": {
+    "endpoint": "https://fcm.googleapis.com/fcm/send/...",
+    "keys": { "p256dh": "...", "auth": "..." }
+  },
+  "device_info": "Android Chrome (Boox)",
+  "created_at": "2026-10-15T22:30:00Z"
+}
+```
+
+#### `POST /push/unsubscribe`
+Remove a registered subscription endpoint.
+```jsonc
+{
+  "endpoint": "https://fcm.googleapis.com/fcm/send/..."
+}
+```
+
+#### `GET /user/preferences` and `PUT /user/preferences`
+Get and update user's Gemini curation topics (interested and excluded).
+```jsonc
+{
+  "interested": ["AI & Agentic Systems", "Distributed Systems"],
+  "excluded": ["Crypto", "Celebrity News"]
+}
+```
 
 ---
 

@@ -65,6 +65,26 @@ function App() {
     if (navigator.onLine) handleDeltaSync(); // eslint-disable-line react-hooks/exhaustive-deps
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Deep linking and Service Worker notification click navigation
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const linkedId = params.get('articleId');
+    if (linkedId) {
+      openArticleById(linkedId);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    if ('serviceWorker' in navigator) {
+      const handleSwMessage = (event: MessageEvent) => {
+        if (event.data?.type === 'NAVIGATE_TO_ARTICLE' && event.data.articleId) {
+          openArticleById(String(event.data.articleId));
+        }
+      };
+      navigator.serviceWorker.addEventListener('message', handleSwMessage);
+      return () => navigator.serviceWorker.removeEventListener('message', handleSwMessage);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     loadArticles();
     updateSyncStatus();
@@ -417,6 +437,31 @@ function App() {
     setSelectedArticle(article);
     if (article.status === 'unread') {
       handleArticleUpdate({ ...article, status: 'read', updatedAt: new Date() });
+    }
+  };
+
+  const openArticleById = async (articleId: string) => {
+    try {
+      const all = await getAllArticles();
+      let target = all.find((a) => a.id === articleId);
+      if (!target && navigator.onLine) {
+        const url = localStorage.getItem('reader_api_root') || DEFAULT_READER_ROOT;
+        const key = localStorage.getItem('api_key') || '';
+        const fetched = await fetchArticlesFromEndpoint(url, key);
+        target = fetched.find((a) => a.id === articleId);
+        if (target) {
+          await saveArticle(target);
+          await loadArticles();
+        }
+      }
+      if (target) {
+        setSelectedArticle(target);
+        if (target.status === 'unread') {
+          handleArticleUpdate({ ...target, status: 'read', updatedAt: new Date() });
+        }
+      }
+    } catch (err) {
+      console.error('Error opening article from notification/deep link:', err);
     }
   };
 

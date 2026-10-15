@@ -1,5 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import EmailTagMappings from './EmailTagMappings';
+import {
+  isPushSupported,
+  getNotificationPermission,
+  getExistingPushSubscription,
+  subscribeToPush,
+  unsubscribeFromPush,
+  triggerLocalTestNotification,
+  loadTopicPreferences,
+  saveTopicPreferences,
+} from '../notifications';
 
 interface SettingsPanelProps {
   readerRoot: string;
@@ -37,6 +47,32 @@ function SettingsPanel({
   const [apiKeyInput, setApiKeyInput] = useState(apiKey);
   const [meditationInput, setMeditationInput] = useState(meditationMinutes);
 
+  // Push Notifications & Curation State
+  const [pushSupported] = useState(() => isPushSupported());
+  const [permission, setPermission] = useState<NotificationPermission>(() => getNotificationPermission());
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [vapidKeyInput, setVapidKeyInput] = useState(() => localStorage.getItem('push_vapid_public_key') || '');
+  const [interestedInput, setInterestedInput] = useState('');
+  const [excludedInput, setExcludedInput] = useState('');
+  const [savingPrefs, setSavingPrefs] = useState(false);
+
+  useEffect(() => {
+    if (pushSupported) {
+      getExistingPushSubscription()
+        .then((sub) => setIsSubscribed(!!sub))
+        .catch(() => {});
+      setPermission(getNotificationPermission());
+    }
+
+    loadTopicPreferences(readerRoot, apiKey)
+      .then((prefs) => {
+        setInterestedInput(prefs.interested.join(', '));
+        setExcludedInput(prefs.excluded.join(', '));
+      })
+      .catch(() => {});
+  }, [pushSupported, readerRoot, apiKey]);
+
   const handleSaveEndpoint = () => {
     onSaveEndpoint(endpointInput);
     alert('Feed endpoint saved!');
@@ -50,6 +86,66 @@ function SettingsPanel({
   const handleSaveApiKey = () => {
     onSaveApiKey(apiKeyInput);
     alert('API key saved!');
+  };
+
+  const handleTogglePush = async () => {
+    if (!pushSupported) {
+      alert('Push notifications are not supported in this browser.');
+      return;
+    }
+    setPushLoading(true);
+    try {
+      if (isSubscribed) {
+        const ok = await unsubscribeFromPush(readerRoot, apiKey);
+        if (ok) {
+          setIsSubscribed(false);
+          alert('Push notifications disabled.');
+        } else {
+          alert('Failed to unsubscribe from push notifications.');
+        }
+      } else {
+        if (!vapidKeyInput.trim()) {
+          alert('Please enter your VAPID Public Key first.');
+          return;
+        }
+        await subscribeToPush(vapidKeyInput.trim(), readerRoot, apiKey);
+        setIsSubscribed(true);
+        setPermission(getNotificationPermission());
+        alert('Push notifications enabled for this Android device!');
+      }
+    } catch (err: unknown) {
+      alert(`Notification setup error: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const handleTestNotification = async () => {
+    try {
+      await triggerLocalTestNotification();
+    } catch (err: unknown) {
+      alert(`Test notification error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  const handleSaveTopics = async () => {
+    setSavingPrefs(true);
+    try {
+      const interested = interestedInput
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const excluded = excludedInput
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      await saveTopicPreferences({ interested, excluded }, readerRoot, apiKey);
+      alert('Curation topic preferences saved!');
+    } catch (err: unknown) {
+      alert(`Error saving topics: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setSavingPrefs(false);
+    }
   };
 
   const handleFetch = () => {
@@ -145,6 +241,101 @@ function SettingsPanel({
               allSenderEmails={allSenderEmails}
               isOnline={isOnline}
             />
+          </section>
+
+          <section className="settings-section">
+            <h3>Android Push Notifications</h3>
+            <p className="hint">
+              Enables push notifications for curated articles on weekdays at 8:00 AM and 6:00 PM.
+              Includes an interactive <strong>Tag for Later</strong> button on your lock screen/tray.
+            </p>
+            <div style={{ marginBottom: '12px', fontSize: '14px', lineHeight: '1.6' }}>
+              <div>
+                <strong>Device Support:</strong> {pushSupported ? '✅ Supported' : '❌ Not supported'}
+              </div>
+              <div>
+                <strong>Android Permission:</strong>{' '}
+                <span style={{ textTransform: 'capitalize', fontWeight: 600 }}>{permission}</span>
+              </div>
+              <div>
+                <strong>Push Status:</strong>{' '}
+                <span style={{ fontWeight: 600, color: isSubscribed ? 'var(--color-success, #2e7d32)' : 'inherit' }}>
+                  {isSubscribed ? '🔔 Subscribed' : '🔕 Inactive'}
+                </span>
+              </div>
+            </div>
+
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+              VAPID Public Key
+            </label>
+            <input
+              type="text"
+              value={vapidKeyInput}
+              onChange={(e) => {
+                setVapidKeyInput(e.target.value);
+                localStorage.setItem('push_vapid_public_key', e.target.value);
+              }}
+              className="rss-url-input"
+              placeholder="Paste backend VAPID public key (base64)"
+            />
+
+            <div className="button-row" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                className="save-btn"
+                onClick={handleTogglePush}
+                disabled={pushLoading || !pushSupported}
+              >
+                {pushLoading
+                  ? 'Updating…'
+                  : isSubscribed
+                  ? 'Disable Notifications'
+                  : 'Enable Android Notifications'}
+              </button>
+              <button
+                className="fetch-btn"
+                onClick={handleTestNotification}
+                disabled={!pushSupported}
+                title="Trigger local test notification on device"
+              >
+                Send Test Notification
+              </button>
+            </div>
+          </section>
+
+          <section className="settings-section">
+            <h3>Curated Article Preferences</h3>
+            <p className="hint">
+              Controls Gemini's weekday curation scan across unread articles from the past 14 days and all articles flagged for Later.
+            </p>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+              Topics of Interest (comma-separated)
+            </label>
+            <input
+              type="text"
+              value={interestedInput}
+              onChange={(e) => setInterestedInput(e.target.value)}
+              className="rss-url-input"
+              placeholder="e.g. AI, Agentic Workflows, Distributed Systems"
+            />
+
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+              Topics to Exclude (comma-separated)
+            </label>
+            <input
+              type="text"
+              value={excludedInput}
+              onChange={(e) => setExcludedInput(e.target.value)}
+              className="rss-url-input"
+              placeholder="e.g. Crypto, Politics, Celebrity News"
+            />
+
+            <button
+              className="save-btn"
+              onClick={handleSaveTopics}
+              disabled={savingPrefs}
+            >
+              {savingPrefs ? 'Saving…' : 'Save Curation Topics'}
+            </button>
           </section>
 
           <section className="settings-section">
