@@ -56,6 +56,7 @@ jobs:
             --region $CLOUD_RUN_REGION \
             --project $GCP_PROJECT \
             --set-secrets="GEMINI_API_KEY=GEMINI_API_KEY:latest,TURSO_DATABASE_URL=TURSO_DATABASE_URL:latest,TURSO_AUTH_TOKEN=TURSO_AUTH_TOKEN:latest,READER_SERVICE_URL=SERVICE_URL:latest,RSS_SECRET=RSS_SECRET:latest,VAPID_PUBLIC_KEY=VAPID_PUBLIC_KEY:latest,VAPID_PRIVATE_KEY=VAPID_PRIVATE_KEY:latest" \
+            --set-env-vars="GEMINI_MODEL=gemini-2.5-flash" \
             --allow-unauthenticated
 
       - name: Get Cloud Run service URL

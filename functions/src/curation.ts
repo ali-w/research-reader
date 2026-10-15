@@ -126,9 +126,11 @@ Return valid JSON strictly matching:
   "reason": "<short 1-sentence curation rationale>"
 }`;
 
+  const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
   const genAI = new GoogleGenerativeAI(geminiApiKey);
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: geminiModel,
     generationConfig: {
       responseMimeType: 'application/json',
     },
