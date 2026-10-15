@@ -32,7 +32,7 @@ export async function runCurationAndPush(): Promise<{
   sentCount?: number;
   reason?: string;
 }> {
-  const serviceUrl = process.env.SERVICE_URL;
+  const serviceUrl = process.env.READER_SERVICE_URL;
   const rssSecret = process.env.RSS_SECRET;
   const geminiApiKey = process.env.GEMINI_API_KEY;
   const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
@@ -40,7 +40,7 @@ export async function runCurationAndPush(): Promise<{
   const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@researchreader.app';
 
   if (!serviceUrl || !rssSecret) {
-    throw new Error('SERVICE_URL or RSS_SECRET environment variables are missing.');
+    throw new Error('READER_SERVICE_URL or RSS_SECRET environment variables are missing.');
   }
   if (!geminiApiKey) {
     throw new Error('GEMINI_API_KEY is not configured.');
@@ -82,7 +82,15 @@ export async function runCurationAndPush(): Promise<{
   const prefs = await getUserPreferences();
 
   // 3. Prompt Gemini for Curation
-  const candidateSummaries = candidates.slice(0, 50).map((a) => ({
+  // Sort: 'later'-tagged articles first (user bookmarked them), then most recent
+  const sortedCandidates = [...candidates].sort((a, b) => {
+    const aIsLater = a.status === 'later' || (Array.isArray(a.tags) && a.tags.includes('later'));
+    const bIsLater = b.status === 'later' || (Array.isArray(b.tags) && b.tags.includes('later'));
+    if (aIsLater !== bIsLater) return aIsLater ? -1 : 1;
+    return new Date(b.received_at ?? 0).getTime() - new Date(a.received_at ?? 0).getTime();
+  });
+
+  const candidateSummaries = sortedCandidates.slice(0, 50).map((a) => ({
     id: a.id,
     title: a.title,
     newsletter: a.newsletter_name || '',
@@ -128,7 +136,13 @@ Return valid JSON strictly matching:
 
   const response = await model.generateContent(prompt);
   const rawText = response.response.text() || '{}';
-  const curated: CuratedResult = JSON.parse(rawText);
+
+  let curated: CuratedResult;
+  try {
+    curated = JSON.parse(rawText);
+  } catch {
+    return { status: 'error', reason: `Gemini returned unparseable JSON: ${rawText.slice(0, 200)}` };
+  }
 
   if (!curated.selected_id) {
     return { status: 'error', reason: 'Gemini did not return a valid article id.' };

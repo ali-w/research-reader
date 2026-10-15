@@ -1,8 +1,7 @@
-import { onRequest } from 'firebase-functions/v2/https';
-import { onSchedule } from 'firebase-functions/v2/scheduler';
 import express from 'express';
 import cors from 'cors';
 import {
+  initDatabase,
   saveSubscription,
   removeSubscription,
   getUserPreferences,
@@ -11,10 +10,20 @@ import {
 import { runCurationAndPush } from './curation.js';
 
 const app = express();
+
 app.use(cors({ origin: true }));
 app.use(express.json());
 
-// 1. Subscribe Device
+// Health Check for Cloud Run
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', service: 'research-reader-curator' });
+});
+
+app.get('/', (_req, res) => {
+  res.json({ status: 'ok', service: 'research-reader-curator' });
+});
+
+// 1. Subscribe Device (from Android WebAPK)
 app.post('/push/subscribe', async (req, res) => {
   try {
     const { subscription, device_info } = req.body;
@@ -53,7 +62,7 @@ app.post('/push/unsubscribe', async (req, res) => {
   }
 });
 
-// 3. Get User Preferences
+// 3. Get User Topic Preferences
 app.get('/user/preferences', async (_req, res) => {
   try {
     const prefs = await getUserPreferences();
@@ -64,7 +73,7 @@ app.get('/user/preferences', async (_req, res) => {
   }
 });
 
-// 4. Update User Preferences
+// 4. Update User Topic Preferences
 app.put('/user/preferences', async (req, res) => {
   try {
     const { interested, excluded } = req.body;
@@ -80,10 +89,9 @@ app.put('/user/preferences', async (req, res) => {
   }
 });
 
-// 5. Test/Manual Curation Trigger
+// 5. Curation & Push Trigger (Invoked by Cloud Scheduler or manual test)
 app.post('/notifications/curate-and-send', async (req, res) => {
   try {
-    // Basic verification against RSS_SECRET if configured
     const expectedKey = process.env.RSS_SECRET;
     const providedKey = req.headers['x-api-key'];
 
@@ -100,34 +108,9 @@ app.post('/notifications/curate-and-send', async (req, res) => {
   }
 });
 
-const ALL_SECRETS = [
-  'GEMINI_API_KEY',
-  'TURSO_DATABASE_URL',
-  'TURSO_AUTH_TOKEN',
-  'RSS_SECRET',
-  'SERVICE_URL',
-  'VAPID_PUBLIC_KEY',
-  'VAPID_PRIVATE_KEY',
-];
+const port = process.env.PORT || 8080;
 
-// HTTPS API Function
-export const api = onRequest(
-  {
-    cors: true,
-    secrets: ALL_SECRETS,
-  },
-  app
-);
-
-// Cloud Scheduler: Weekdays at 8:00 AM and 6:00 PM London time
-export const dailyCurationCron = onSchedule(
-  {
-    schedule: '0 8,18 * * 1-5',
-    timeZone: 'Europe/London',
-    secrets: ALL_SECRETS,
-  },
-  async () => {
-    const result = await runCurationAndPush();
-    console.log('Daily curation cron completed:', result);
-  }
-);
+await initDatabase();
+app.listen(port, () => {
+  console.log(`Research Reader Curator service listening on port ${port}`);
+});

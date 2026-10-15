@@ -55,7 +55,6 @@ export async function saveSubscription(payload: {
   device_info?: string;
 }): Promise<void> {
   const db = getTursoClient();
-  await initDatabase();
 
   await db.execute({
     sql: `INSERT INTO push_subscriptions (endpoint, p256dh, auth, device_info, created_at)
@@ -71,7 +70,6 @@ export async function saveSubscription(payload: {
 
 export async function removeSubscription(endpoint: string): Promise<void> {
   const db = getTursoClient();
-  await initDatabase();
 
   await db.execute({
     sql: `DELETE FROM push_subscriptions WHERE endpoint = ?`,
@@ -82,7 +80,6 @@ export async function removeSubscription(endpoint: string): Promise<void> {
 export async function removeSubscriptions(endpoints: string[]): Promise<void> {
   if (endpoints.length === 0) return;
   const db = getTursoClient();
-  await initDatabase();
 
   const placeholders = endpoints.map(() => '?').join(',');
   await db.execute({
@@ -93,7 +90,6 @@ export async function removeSubscriptions(endpoints: string[]): Promise<void> {
 
 export async function getAllSubscriptions(): Promise<StoredSubscription[]> {
   const db = getTursoClient();
-  await initDatabase();
 
   const rs = await db.execute(`SELECT endpoint, p256dh, auth, device_info, created_at FROM push_subscriptions`);
   return rs.rows.map((row) => ({
@@ -112,7 +108,6 @@ export interface StoredPreferences {
 
 export async function getUserPreferences(): Promise<StoredPreferences> {
   const db = getTursoClient();
-  await initDatabase();
 
   const rs = await db.execute({
     sql: `SELECT interested_topics, excluded_topics FROM user_preferences WHERE user_id = 'default' LIMIT 1`,
@@ -142,7 +137,6 @@ export async function getUserPreferences(): Promise<StoredPreferences> {
 
 export async function saveUserPreferences(prefs: StoredPreferences): Promise<void> {
   const db = getTursoClient();
-  await initDatabase();
 
   await db.execute({
     sql: `INSERT INTO user_preferences (user_id, interested_topics, excluded_topics, updated_at)

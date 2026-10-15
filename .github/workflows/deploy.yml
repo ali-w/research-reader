@@ -1,13 +1,19 @@
-name: Deploy to Firebase Hosting and Functions
+name: Deploy Research Reader (Hosting & Cloud Run)
 
 on:
   push:
     branches: [main]
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+env:
+  GCP_PROJECT: gen-lang-client-0725921603
+  CLOUD_RUN_SERVICE: research-reader-curator
+  CLOUD_RUN_REGION: europe-west1
+  SCHEDULER_REGION: europe-west1
 
+jobs:
+  deploy-frontend:
+    name: Deploy PWA to Firebase Hosting
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -18,17 +24,98 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install dependencies & Build
         run: |
           npm ci
-          cd functions && npm ci && cd ..
-
-      - name: Build
-        run: |
           npm run build
-          cd functions && npm run build && cd ..
 
-      - name: Deploy to Firebase
-        run: npx firebase-tools deploy --only hosting,functions --token "$FIREBASE_TOKEN" --non-interactive
+      - name: Deploy to Firebase Hosting
+        run: npx firebase-tools deploy --only hosting --token "$FIREBASE_TOKEN" --non-interactive
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+  deploy-curator:
+    name: Deploy Curator Service to Cloud Run
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Google Auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy $CLOUD_RUN_SERVICE \
+            --source functions \
+            --region $CLOUD_RUN_REGION \
+            --project $GCP_PROJECT \
+            --set-secrets="GEMINI_API_KEY=GEMINI_API_KEY:latest,TURSO_DATABASE_URL=TURSO_DATABASE_URL:latest,TURSO_AUTH_TOKEN=TURSO_AUTH_TOKEN:latest,READER_SERVICE_URL=SERVICE_URL:latest,RSS_SECRET=RSS_SECRET:latest,VAPID_PUBLIC_KEY=VAPID_PUBLIC_KEY:latest,VAPID_PRIVATE_KEY=VAPID_PRIVATE_KEY:latest" \
+            --allow-unauthenticated
+
+      - name: Get Cloud Run service URL
+        id: service_url
+        run: |
+          URL=$(gcloud run services describe $CLOUD_RUN_SERVICE \
+            --region $CLOUD_RUN_REGION \
+            --project $GCP_PROJECT \
+            --format 'value(status.url)')
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch RSS_SECRET for scheduler header
+        id: rss_secret
+        run: |
+          SECRET=$(gcloud secrets versions access latest \
+            --secret=RSS_SECRET \
+            --project=$GCP_PROJECT)
+          echo "::add-mask::$SECRET"
+          echo "value=$SECRET" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update morning curation job (08:00 UK weekdays)
+        run: |
+          SERVICE_URL="${{ steps.service_url.outputs.url }}"
+          RSS_SECRET="${{ steps.rss_secret.outputs.value }}"
+
+          gcloud scheduler jobs delete research-reader-curation-morning \
+            --location $SCHEDULER_REGION \
+            --project $GCP_PROJECT \
+            --quiet 2>/dev/null || true
+
+          gcloud scheduler jobs create http research-reader-curation-morning \
+            --location $SCHEDULER_REGION \
+            --project $GCP_PROJECT \
+            --schedule "0 8 * * 1-5" \
+            --time-zone "Europe/London" \
+            --uri "${SERVICE_URL}/notifications/curate-and-send" \
+            --http-method POST \
+            --headers "X-Api-Key=${RSS_SECRET},Content-Type=application/json" \
+            --message-body "{}" \
+            --attempt-deadline 5m \
+            --description "Morning article curation push — 08:00 UK weekdays"
+
+      - name: Create or update evening curation job (18:00 UK weekdays)
+        run: |
+          SERVICE_URL="${{ steps.service_url.outputs.url }}"
+          RSS_SECRET="${{ steps.rss_secret.outputs.value }}"
+
+          gcloud scheduler jobs delete research-reader-curation-evening \
+            --location $SCHEDULER_REGION \
+            --project $GCP_PROJECT \
+            --quiet 2>/dev/null || true
+
+          gcloud scheduler jobs create http research-reader-curation-evening \
+            --location $SCHEDULER_REGION \
+            --project $GCP_PROJECT \
+            --schedule "0 18 * * 1-5" \
+            --time-zone "Europe/London" \
+            --uri "${SERVICE_URL}/notifications/curate-and-send" \
+            --http-method POST \
+            --headers "X-Api-Key=${RSS_SECRET},Content-Type=application/json" \
+            --message-body "{}" \
+            --attempt-deadline 5m \
+            --description "Evening article curation push — 18:00 UK weekdays"
