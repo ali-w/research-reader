@@ -1,4 +1,4 @@
-name: Deploy to Firebase Hosting and Functions
+name: Deploy to Firebase Hosting
 
 on:
   push:
@@ -19,16 +19,12 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm ci
-          cd functions && npm ci && cd ..
+        run: npm ci
 
       - name: Build
-        run: |
-          npm run build
-          cd functions && npm run build && cd ..
+        run: npm run build
 
-      - name: Deploy to Firebase
-        run: npx firebase-tools deploy --only hosting,functions --token "$FIREBASE_TOKEN" --non-interactive
+      - name: Deploy to Firebase Hosting
+        run: npx firebase-tools deploy --only hosting --token "$FIREBASE_TOKEN" --non-interactive
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

@@ -5,6 +5,17 @@ export interface TopicPreferences {
 
 const STORAGE_KEY_VAPID = 'push_vapid_public_key';
 const STORAGE_KEY_PREFS = 'topic_curation_preferences';
+const STORAGE_KEY_SERVICE_ROOT = 'push_service_root';
+
+export function getServiceRoots(readerRoot?: string): string[] {
+  if (typeof window === 'undefined') return [];
+  const custom = localStorage.getItem(STORAGE_KEY_SERVICE_ROOT);
+  return [
+    ...(custom ? [custom.replace(/\/+$/, '')] : []),
+    ...(readerRoot ? [readerRoot.replace(/\/+$/, '')] : []),
+    `/api`,
+  ].filter(Boolean);
+}
 
 export function isPushSupported(): boolean {
   return typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
@@ -72,10 +83,7 @@ export async function subscribeToPush(
   localStorage.setItem(STORAGE_KEY_VAPID, vapidPublicKey);
 
   // Send subscription to backend
-  const candidateUrls = [
-    `/api/push/subscribe`,
-    ...(readerRoot ? [`${readerRoot}/push/subscribe`] : []),
-  ];
+  const candidateUrls = getServiceRoots(readerRoot).map((root) => `${root}/push/subscribe`);
 
   for (const url of candidateUrls) {
     try {
@@ -107,10 +115,7 @@ export async function unsubscribeFromPush(readerRoot: string, apiKey: string): P
   const subscription = await getExistingPushSubscription();
   if (!subscription) return true;
 
-  const candidateUrls = [
-    `/api/push/unsubscribe`,
-    ...(readerRoot ? [`${readerRoot}/push/unsubscribe`] : []),
-  ];
+  const candidateUrls = getServiceRoots(readerRoot).map((root) => `${root}/push/unsubscribe`);
 
   for (const url of candidateUrls) {
     try {
@@ -169,10 +174,7 @@ export async function loadTopicPreferences(readerRoot: string, apiKey: string): 
     excluded: ['Crypto', 'Gossip', 'Celebrity News'],
   };
 
-  const candidateUrls = [
-    `/api/user/preferences`,
-    ...(readerRoot ? [`${readerRoot}/user/preferences`] : []),
-  ];
+  const candidateUrls = getServiceRoots(readerRoot).map((root) => `${root}/user/preferences`);
 
   for (const url of candidateUrls) {
     try {
@@ -219,10 +221,7 @@ export async function saveTopicPreferences(
 ): Promise<void> {
   localStorage.setItem(STORAGE_KEY_PREFS, JSON.stringify(prefs));
 
-  const candidateUrls = [
-    `/api/user/preferences`,
-    ...(readerRoot ? [`${readerRoot}/user/preferences`] : []),
-  ];
+  const candidateUrls = getServiceRoots(readerRoot).map((root) => `${root}/user/preferences`);
 
   for (const url of candidateUrls) {
     try {

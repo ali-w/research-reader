@@ -53,6 +53,7 @@ function SettingsPanel({
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const [vapidKeyInput, setVapidKeyInput] = useState(() => localStorage.getItem('push_vapid_public_key') || '');
+  const [pushServiceInput, setPushServiceInput] = useState(() => localStorage.getItem('push_service_root') || '');
   const [interestedInput, setInterestedInput] = useState('');
   const [excludedInput, setExcludedInput] = useState('');
   const [savingPrefs, setSavingPrefs] = useState(false);
@@ -264,6 +265,20 @@ function SettingsPanel({
                 </span>
               </div>
             </div>
+
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
+              Curator Service URL (Cloud Run)
+            </label>
+            <input
+              type="url"
+              value={pushServiceInput}
+              onChange={(e) => {
+                setPushServiceInput(e.target.value);
+                localStorage.setItem('push_service_root', e.target.value);
+              }}
+              className="rss-url-input"
+              placeholder="e.g. https://research-reader-curator-xxx.run.app"
+            />
 
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>
               VAPID Public Key
