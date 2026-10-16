@@ -226,7 +226,7 @@ Return valid JSON strictly matching:
 
   const client = new MessageClient({ username: cloudmailinUsername, apiKey: cloudmailinApiKey });
   await client.sendMessage({
-    from: emailFrom,
+    from: emailFrom!,
     to: emailTo,
     subject: `Research Reader — ${result.articles.length} articles for ${dateLabel}`,
     html,
