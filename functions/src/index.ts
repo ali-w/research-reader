@@ -8,6 +8,7 @@ import {
   saveUserPreferences,
 } from './db.js';
 import { runCurationAndPush } from './curation.js';
+import { runEmailSummary } from './emailSummary.js';
 
 const app = express();
 
@@ -89,7 +90,26 @@ app.put('/user/preferences', async (req, res) => {
   }
 });
 
-// 5. Curation & Push Trigger (Invoked by Cloud Scheduler or manual test)
+// 5. Email Summary Trigger (Invoked by Cloud Scheduler on Tue/Thu)
+app.post('/notifications/email-summary', async (req, res) => {
+  try {
+    const expectedKey = process.env.RSS_SECRET;
+    const providedKey = req.headers['x-api-key'];
+
+    if (expectedKey && providedKey !== expectedKey) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const result = await runEmailSummary();
+    res.json(result);
+  } catch (err: unknown) {
+    console.error('Error in /notifications/email-summary:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+// 6. Curation & Push Trigger (Invoked by Cloud Scheduler or manual test)
 app.post('/notifications/curate-and-send', async (req, res) => {
   try {
     const expectedKey = process.env.RSS_SECRET;

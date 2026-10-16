@@ -55,7 +55,7 @@ jobs:
             --source functions \
             --region $CLOUD_RUN_REGION \
             --project $GCP_PROJECT \
-            --set-secrets="GEMINI_API_KEY=GEMINI_API_KEY:latest,TURSO_DATABASE_URL=TURSO_DATABASE_URL:latest,TURSO_AUTH_TOKEN=TURSO_AUTH_TOKEN:latest,READER_SERVICE_URL=SERVICE_URL:latest,RSS_SECRET=RSS_SECRET:latest,VAPID_PUBLIC_KEY=VAPID_PUBLIC_KEY:latest,VAPID_PRIVATE_KEY=VAPID_PRIVATE_KEY:latest" \
+            --set-secrets="GEMINI_API_KEY=GEMINI_API_KEY:latest,TURSO_DATABASE_URL=TURSO_DATABASE_URL:latest,TURSO_AUTH_TOKEN=TURSO_AUTH_TOKEN:latest,READER_SERVICE_URL=SERVICE_URL:latest,RSS_SECRET=RSS_SECRET:latest,VAPID_PUBLIC_KEY=VAPID_PUBLIC_KEY:latest,VAPID_PRIVATE_KEY=VAPID_PRIVATE_KEY:latest,CLOUDMAILIN_USERNAME=CLOUDMAILIN_USERNAME:latest,CLOUDMAILIN_API_KEY=CLOUDMAILIN_API_KEY:latest,SUMMARY_EMAIL_TO=SUMMARY_EMAIL_TO:latest" \
             --set-env-vars="GEMINI_MODEL=gemini-2.5-flash" \
             --allow-unauthenticated
 
@@ -98,6 +98,28 @@ jobs:
             --message-body "{}" \
             --attempt-deadline 5m \
             --description "Morning article curation push — 08:00 UK weekdays"
+
+      - name: Create or update email summary job (07:30 UK Tue/Thu)
+        run: |
+          SERVICE_URL="${{ steps.service_url.outputs.url }}"
+          RSS_SECRET="${{ steps.rss_secret.outputs.value }}"
+
+          gcloud scheduler jobs delete research-reader-email-summary \
+            --location $SCHEDULER_REGION \
+            --project $GCP_PROJECT \
+            --quiet 2>/dev/null || true
+
+          gcloud scheduler jobs create http research-reader-email-summary \
+            --location $SCHEDULER_REGION \
+            --project $GCP_PROJECT \
+            --schedule "30 7 * * 2,4" \
+            --time-zone "Europe/London" \
+            --uri "${SERVICE_URL}/notifications/email-summary" \
+            --http-method POST \
+            --headers "X-Api-Key=${RSS_SECRET},Content-Type=application/json" \
+            --message-body "{}" \
+            --attempt-deadline 5m \
+            --description "Email article summary — 07:30 UK Tue/Thu"
 
       - name: Create or update evening curation job (18:00 UK weekdays)
         run: |
